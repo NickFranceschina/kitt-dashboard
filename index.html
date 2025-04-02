@@ -47,12 +47,23 @@
         </div>
         <div class="config-section">
             <h4>ElevenLabs Configuration</h4>
+            <div class="language-selector">
+                <label for="language-select">Language:</label>
+                <select id="language-select" class="language-select">
+                    <option value="en-US">English (US)</option>
+                    <option value="es-ES">Spanish</option>
+                    <option value="it-IT">Italian</option>
+                    <option value="vi-VN">Vietnamese</option>
+                    <option value="hi-IN">Hindi</option>
+                </select>
+            </div>
             <textarea id="config-json" rows="20" placeholder='{
     "elevenlabs": {
         "apiKey": "your-api-key-here",
         "voiceId": "your-voice-id-here",
         "modelId": "eleven_monolingual_v1",
         "agentId": "your-agent-id-here-optional",
+        "language": "en-US",
         "additionalParams": {
             "stability": 0.5,
             "similarity_boost": 0.75,

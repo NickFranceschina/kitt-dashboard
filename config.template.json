@@ -4,6 +4,7 @@
         "voiceId": "your-voice-id-here",
         "modelId": "eleven_monolingual_v1",
         "agentId": "your-agent-id-here-optional",
+        "language": "en-US",
         "additionalParams": {
             "stability": 0.5,
             "similarity_boost": 0.75,

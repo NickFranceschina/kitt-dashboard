@@ -1,143 +1,91 @@
 # KITT Dashboard
 
-Interactive KITT dashboard inspired by the TV show Knight Rider, complete with voice recognition and ElevenLabs integration.
-
-![KITT Dashboard Screenshot](https://placeholder-for-your-screenshot.jpg)
+A Knight Rider-inspired dashboard interface with ElevenLabs AI integration for natural language interaction.
 
 ## Features
 
-- Authentic KITT dashboard with 3-column voice modulator display
-- Interactive buttons and mode indicators
-- Voice recognition to speak commands to KITT
-- ElevenLabs integration for voice responses with customizable parameters
-- Complete API for programmatic control
-- Slide-out configuration panel for easy settings management
-- Real-time voice modulator visualization
-- Multiple conversation modes (TTS and AI Agent)
-- System logging and debugging tools
-- HTTPS local hosting support with SSL certificates
-- Improved voice light control and effects
-- Cross-browser compatibility
-
-## Prerequisites
-
-- Node.js (v14 or higher)
-- ElevenLabs API key
-- Modern web browser with JavaScript enabled
-
-## Installation
-
-1. Clone this repository:
-```bash
-git clone https://github.com/yourusername/kitt-dashboard.git
-cd kitt-dashboard
-```
-
-2. Install frontend dependencies:
-```bash
-npm install
-```
-
-3. Install backend dependencies:
-```bash
-cd backend
-npm install
-cd ..
-```
-
-4. Set up your configuration:
-   - Copy `config.template.json` to `config.json`
-   - Update the configuration with your ElevenLabs API key and settings
-   - Create a `.env` file in the backend directory with required environment variables
-
-5. Start the development server:
-```bash
-# For HTTP (development)
-npm run dev
-
-# For HTTPS (recommended for voice recognition)
-npm run https
-```
+- 🎙️ Real-time voice interaction with KITT using ElevenLabs AI
+- 🎯 Multiple display modes (Auto Cruise, Normal Cruise, Pursuit)
+- 🎨 Dynamic voice modulator visualization
+- 🔧 Configurable ElevenLabs API settings
+- 🌐 Multi-language support (English, Spanish, Italian, Vietnamese, Hindi)
+- 📝 Conversation history with copy/clear functionality
+- 📊 System logging for debugging
+- 🎮 Interactive dashboard controls
 
 ## Configuration
 
-The dashboard includes a slide-out configuration panel that allows you to:
-- Configure ElevenLabs API settings and voice parameters
-- Test and adjust voice modulator settings
-- View system logs and debugging information
-- Manage conversation modes and settings
-- Customize lighting effects and visual feedback
+### ElevenLabs API Setup
 
-### ElevenLabs Configuration
-- API Key: Your ElevenLabs API key
-- Voice ID: The ID of your chosen voice
-- Model ID: Currently supports "eleven_monolingual_v1"
-- Agent ID: Optional for AI conversation mode
-- Additional Parameters:
-  - Stability: Voice stability (0.0-1.0)
-  - Similarity Boost: Voice similarity (0.0-1.0)
-  - Style: Voice style (0.0-1.0)
-  - Speaker Boost: Enhanced voice clarity
+1. Get your API key from [ElevenLabs](https://elevenlabs.io)
+2. Create a voice in your ElevenLabs account
+3. Create an AI agent in your ElevenLabs account
+4. Open the configuration panel (gear icon)
+5. Paste your configuration in this format:
 
-### Speech Recognition Settings
-- Language: Speech recognition language (default: en-US)
-- Continuous: Enable/disable continuous listening
-- Interim Results: Show/hide interim recognition results
+```json
+{
+    "elevenlabs": {
+        "apiKey": "your-api-key-here",
+        "voiceId": "your-voice-id-here",
+        "modelId": "eleven_monolingual_v1",
+        "agentId": "your-agent-id-here",
+        "language": "en-US",
+        "additionalParams": {
+            "stability": 0.5,
+            "similarity_boost": 0.75,
+            "style": 0.0,
+            "use_speaker_boost": true
+        }
+    },
+    "speech": {
+        "language": "en-US",
+        "continuous": false,
+        "interimResults": false
+    }
+}
+```
+
+### Language Support
+
+The dashboard supports multiple languages. You can change the language in two ways:
+
+1. Using the language dropdown in the configuration panel
+2. Manually editing the `language` field in the configuration JSON
+
+Supported language codes:
+- English (US): `en-US`
+- Spanish: `es-ES`
+- Italian: `it-IT`
+- Vietnamese: `vi-VN`
+- Hindi: `hi-IN`
+
+The language setting affects both the AI agent's responses and speech recognition input.
 
 ## Usage
 
-1. **Voice Recognition**:
-   - Click the microphone button to start speaking
-   - The voice modulator will light up to indicate active listening
-   - Speak your command clearly and wait for KITT's response
-   - The system supports both TTS and AI conversation modes
-
-2. **Mode Selection**:
-   - Choose between Auto Cruise, Normal Cruise, and Pursuit modes
-   - Each mode has unique visual indicators and response patterns
-   - Mode changes are reflected in both visual and audio feedback
-
-3. **Configuration Panel**:
-   - Access settings by clicking the gear icon on the left side
-   - Pin the panel open for easy access during use
-   - View real-time system logs and debug information
-   - Test voice modulator settings in real-time
+1. Configure your ElevenLabs API settings
+2. Choose your preferred language
+3. Click "Start Conversation" to begin interacting with KITT
+4. Use the microphone button to speak
+5. KITT will respond in your selected language
+6. Use the dashboard controls to interact with different modes
 
 ## Development
 
-Recent improvements include:
-- Refactored voice modulator component for better maintainability
-- Enhanced configuration panel with improved error handling
-- Better voice light control and visual feedback
-- Improved conversation mode switching and controls
-- Added HTTPS support for local development with SSL certificates
-- Enhanced system logging and debugging capabilities
-- Improved cross-browser compatibility
-- Better error handling for API calls
+### Prerequisites
 
-## Troubleshooting
+- Modern web browser with WebSocket support
+- ElevenLabs API key and configured agent
+- Microphone access for voice interaction
 
-1. **Voice Recognition Issues**:
-   - Ensure you're using HTTPS (required for microphone access)
-   - Check browser permissions for microphone access
-   - Verify ElevenLabs API key is valid and has sufficient credits
+### Local Development
 
-2. **Configuration Problems**:
-   - Verify config.json is properly formatted
-   - Check backend .env file for required variables
-   - Ensure all API keys are valid and properly set
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request. When contributing:
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+1. Clone the repository
+2. Open `index.html` in your browser
+3. Configure your ElevenLabs API settings
+4. Start developing!
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT License - feel free to use this project as you wish!

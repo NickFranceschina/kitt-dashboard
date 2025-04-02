@@ -355,7 +355,29 @@ document.addEventListener('DOMContentLoaded', function() {
         // Configure speech recognition
         recognition.continuous = false;
         recognition.interimResults = false;
-        recognition.lang = 'en-US';
+        recognition.lang = 'en-US'; // Default language
+        
+        // Function to update speech recognition language
+        async function updateSpeechRecognitionLanguage() {
+            try {
+                const config = await getElevenLabsConfig();
+                if (config && config.language) {
+                    recognition.lang = config.language;
+                    log(`Speech recognition language set to: ${config.language}`, 'system');
+                }
+            } catch (error) {
+                console.error('Error updating speech recognition language:', error);
+            }
+        }
+        
+        // Update language when configuration changes
+        const configTextarea = document.getElementById('config-json');
+        if (configTextarea) {
+            configTextarea.addEventListener('input', updateSpeechRecognitionLanguage);
+        }
+        
+        // Initial language update
+        updateSpeechRecognitionLanguage();
         
         // Event handlers for speech recognition
         recognition.onstart = function() {
@@ -696,17 +718,32 @@ document.addEventListener('DOMContentLoaded', function() {
         const endButton = document.getElementById('end-conversation');
         
         try {
+            // First, ensure any existing conversation is properly ended
+            if (conversation) {
+                await endConversation();
+            }
+
             const hasPermission = await requestMicrophonePermission();
             if (!hasPermission) {
                 alert('Microphone permission is required for the conversation.');
                 return;
             }
 
+            const config = await getElevenLabsConfig();
+            if (!config.apiKey || !config.agentId) {
+                throw new Error('Missing API key or Agent ID in configuration');
+            }
+
             const signedUrl = await getSignedUrl();
             
-            // Create a new Conversation instance
+            // Create a new Conversation instance with language configuration
             conversation = await Conversation.startSession({
                 signedUrl: signedUrl,
+                overrides: {
+                    agent: {
+                        language: (config.language || 'en-US').split('-')[0]
+                    }
+                },
                 onConnect: () => {
                     console.log('Connected to KITT');
                     updateStatus(true);
@@ -714,6 +751,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     endButton.disabled = false;
                     isStreaming = true;
                     activateMode('pursuit');
+                    log(`Conversation started with language: ${config.language || 'en-US'}`, 'system');
                 },
                 onDisconnect: () => {
                     console.log('Disconnected from KITT');
@@ -723,10 +761,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     isStreaming = false;
                     activateMode('auto-cruise');
                     window.voiceModulator.stopAnimation();
+                    // Clear the conversation reference
+                    conversation = null;
                 },
                 onError: (error) => {
                     console.error('Conversation error:', error);
-                    alert('An error occurred during the conversation.');
+                    log(`Conversation error: ${error.message}`, 'error');
+                    // Don't show alert for WebSocket state errors
+                    if (!error.message.includes('WebSocket is already in CLOSING or CLOSED state')) {
+                        alert('An error occurred during the conversation.');
+                    }
                 },
                 onModeChange: (mode) => {
                     console.log('Mode changed:', mode);
@@ -736,23 +780,48 @@ document.addEventListener('DOMContentLoaded', function() {
             
         } catch (error) {
             console.error('Error starting conversation:', error);
+            log(`Error starting conversation: ${error.message}`, 'error');
             alert('Failed to start conversation. Please try again.');
+            // Reset state on error
+            conversation = null;
+            isStreaming = false;
+            updateStatus(false);
+            micButton.disabled = false;
+            endButton.disabled = true;
         }
+    }
+
+    // Helper function to get language name from code
+    function getLanguageName(code) {
+        const languageMap = {
+            'en-US': 'English (US)',
+            'es-ES': 'Spanish',
+            'it-IT': 'Italian',
+            'vi-VN': 'Vietnamese',
+            'hi-IN': 'Hindi'
+        };
+        return languageMap[code] || 'English (US)';
     }
 
     // Function to end streaming conversation
     async function endConversation() {
-        if (isStreaming && conversation) {
-            await conversation.endSession();
-            conversation = null;
-            isStreaming = false;
-            
-            // Reset UI state
-            updateStatus(false);
-            document.getElementById('mic-button').disabled = false;
-            document.getElementById('end-conversation').disabled = true;
-            activateMode('auto-cruise');
-            window.voiceModulator.stopAnimation();
+        if (conversation) {
+            try {
+                await conversation.endSession();
+                log('Conversation ended successfully', 'system');
+            } catch (error) {
+                console.error('Error ending conversation:', error);
+                log(`Error ending conversation: ${error.message}`, 'error');
+            } finally {
+                // Always reset state
+                conversation = null;
+                isStreaming = false;
+                updateStatus(false);
+                document.getElementById('mic-button').disabled = false;
+                document.getElementById('end-conversation').disabled = true;
+                activateMode('auto-cruise');
+                window.voiceModulator.stopAnimation();
+            }
         }
     }
 
@@ -831,6 +900,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // Validate the configuration structure
             if (!config.elevenlabs || !config.elevenlabs.apiKey || !config.elevenlabs.voiceId) {
                 throw new Error('Invalid configuration: Missing required fields (apiKey, voiceId)');
+            }
+            
+            // Ensure language is properly set in the config
+            if (!config.elevenlabs.language) {
+                config.elevenlabs.language = 'en-US'; // Default to English if not set
             }
             
             return config.elevenlabs;
@@ -957,6 +1031,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const startButton = document.getElementById('start-conversation');
             const endButton = document.getElementById('end-conversation');
             const statusText = document.getElementById('status-text');
+            const languageSelect = document.getElementById('language-select');
+            
+            // Update language dropdown if config has a language
+            if (config && config.language && languageSelect) {
+                languageSelect.value = config.language;
+                log(`Language updated from config: ${config.language}`, 'system');
+            }
             
             if (hasValidConfig) {
                 // Enable buttons and remove error state
@@ -989,6 +1070,73 @@ document.addEventListener('DOMContentLoaded', function() {
                 log('Invalid or incomplete configuration', 'error');
             }
         });
+    }
+
+    // Add language selector handler
+    const languageSelect = document.getElementById('language-select');
+    if (languageSelect) {
+        languageSelect.addEventListener('change', async function() {
+            try {
+                const selectedLanguage = this.value;
+                const configText = document.getElementById('config-json').value.trim();
+                
+                if (configText) {
+                    // Parse the existing configuration
+                    const config = JSON.parse(configText);
+                    
+                    // Ensure elevenlabs section exists
+                    if (!config.elevenlabs) {
+                        config.elevenlabs = {};
+                    }
+                    
+                    // Update the language in both elevenlabs and speech sections
+                    config.elevenlabs.language = selectedLanguage;
+                    
+                    if (config.speech) {
+                        config.speech.language = selectedLanguage;
+                    } else {
+                        config.speech = {
+                            language: selectedLanguage,
+                            continuous: false,
+                            interimResults: false
+                        };
+                    }
+                    
+                    // Update the config textarea with the modified configuration
+                    document.getElementById('config-json').value = JSON.stringify(config, null, 4);
+                    
+                    // Update speech recognition language
+                    if (recognition) {
+                        recognition.lang = selectedLanguage;
+                        log(`Language changed to: ${selectedLanguage}`, 'system');
+                    }
+                    
+                    // If conversation is active, restart it with new language
+                    if (isStreaming && conversation) {
+                        log('Restarting conversation with new language...', 'system');
+                        await endConversation();
+                        await startConversation();
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating language:', error);
+                log('Error updating language: ' + error.message, 'error');
+            }
+        });
+
+        // Set initial language from config
+        async function setInitialLanguage() {
+            try {
+                const config = await getElevenLabsConfig();
+                if (config && config.language) {
+                    languageSelect.value = config.language;
+                    log(`Initial language set to: ${config.language}`, 'system');
+                }
+            } catch (error) {
+                console.error('Error setting initial language:', error);
+            }
+        }
+        setInitialLanguage();
     }
 });
 
