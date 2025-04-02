@@ -184,7 +184,7 @@ body {
     min-width: 60px;
 }
 
-button {
+.control-panel button {
     margin: 0 5px;
     padding: 5px 10px;
     background-color: #666;
@@ -194,8 +194,23 @@ button {
     cursor: pointer;
 }
 
-button:hover {
+.control-panel button:hover {
     background-color: #888;
+}
+
+.control-panel button.active {
+    background-color: #d4a017;
+    color: black;
+    box-shadow: 0 0 10px rgba(212, 160, 23, 0.5);
+}
+
+.control-panel button.active:hover {
+    background-color: #ffc125;
+}
+
+#btn-tts-mode, #btn-ai-mode {
+    min-width: 120px;
+    transition: all 0.3s ease;
 }
 
 /* Voice Recognition Styles */
@@ -347,4 +362,53 @@ button:hover {
     font-family: monospace;
     font-size: 12px;
     resize: vertical;
+}
+
+.conversation-section {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #222;
+    border-radius: 5px;
+}
+
+.conversation-section h4 {
+    color: #d4a017;
+    margin: 0 0 10px 0;
+    font-size: 16px;
+}
+
+.conversation-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.conversation-history {
+    background-color: #111;
+    color: #fff;
+    padding: 10px;
+    border-radius: 5px;
+    min-height: 150px;
+    max-height: 300px;
+    overflow-y: auto;
+    font-family: monospace;
+    white-space: pre-wrap;
+    border: 1px solid #333;
+}
+
+.conversation-history .user-message {
+    color: #ffc125;
+    margin-bottom: 10px;
+}
+
+.conversation-history .kitt-message {
+    color: #ff0000;
+    margin-bottom: 10px;
+    padding-left: 20px;
+}
+
+.conversation-history .system-message {
+    color: #888;
+    font-style: italic;
+    margin-bottom: 10px;
 }

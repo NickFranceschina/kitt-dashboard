@@ -357,66 +357,269 @@ document.addEventListener('DOMContentLoaded', function() {
         randomVoiceAnimation();
     }
     
-    // Process speech input and interact with ElevenLabs
-    async function processSpeechInput(text) {
-        try {
-            log('Processing speech input...', 'system');
-            const config = await getElevenLabsConfig();
-            
-            if (!config.apiKey || !config.voiceId) {
-                log('Missing API key or voice ID in configuration', 'error');
-                return;
-            }
+    // ElevenLabs API configuration
+    const ELEVENLABS_API_BASE = 'https://api.elevenlabs.io/v1';
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY = 1000; // 1 second
 
-            log('Sending request to ElevenLabs API...', 'api');
-            const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${config.voiceId}`, {
-                method: 'POST',
+    // Audio context for voice playback
+    let audioContext = null;
+    let audioSource = null;
+
+    // Function to initialize audio context
+    function initAudioContext() {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    // Function to stop current audio playback
+    function stopAudioPlayback() {
+        if (audioSource) {
+            audioSource.stop();
+            audioSource = null;
+        }
+    }
+
+    // Function to play audio from array buffer
+    async function playAudio(audioBuffer) {
+        stopAudioPlayback();
+        initAudioContext();
+        
+        try {
+            const audioData = await audioContext.decodeAudioData(audioBuffer);
+            audioSource = audioContext.createBufferSource();
+            audioSource.buffer = audioData;
+            audioSource.connect(audioContext.destination);
+            audioSource.start(0);
+            
+            // Animate voice modulator during playback
+            const duration = audioData.duration * 1000; // Convert to milliseconds
+            const startTime = Date.now();
+            
+            const animatePlayback = () => {
+                const elapsed = Date.now() - startTime;
+                if (elapsed < duration) {
+                    // Create a wave pattern based on elapsed time
+                    const progress = elapsed / duration;
+                    const value = Math.sin(progress * Math.PI * 8) * 50 + 50;
+                    animateVoice(value);
+                    requestAnimationFrame(animatePlayback);
+                } else {
+                    stopVoiceAnimation();
+                }
+            };
+            
+            animatePlayback();
+            
+            return new Promise((resolve, reject) => {
+                audioSource.onended = resolve;
+                audioSource.onerror = reject;
+            });
+        } catch (error) {
+            console.error('Error playing audio:', error);
+            throw error;
+        }
+    }
+
+    // Function to call ElevenLabs API with retries
+    async function callElevenLabsAPI(endpoint, options = {}, retryCount = 0) {
+        try {
+            const config = await getElevenLabsConfig();
+            const response = await fetch(`${ELEVENLABS_API_BASE}${endpoint}`, {
+                ...options,
                 headers: {
-                    'Accept': 'audio/mpeg',
                     'Content-Type': 'application/json',
-                    'xi-api-key': config.apiKey
-                },
-                body: JSON.stringify({
-                    text: text,
-                    model_id: config.modelId || 'eleven_monolingual_v1',
-                    ...config.additionalParams
-                })
+                    'xi-api-key': config.apiKey,
+                    ...options.headers
+                }
             });
 
             if (!response.ok) {
-                const error = await response.text();
-                log(`ElevenLabs API error: ${error}`, 'error');
-                return;
+                const error = await response.json();
+                throw new Error(error.detail || 'API request failed');
             }
 
-            const audioBlob = await response.blob();
-            const audioUrl = URL.createObjectURL(audioBlob);
-            const audio = new Audio(audioUrl);
-            
-            // Connect the audio to the voice modulator display
-            window.connectToAudio(audio);
-            
-            log('Audio received, playing response...', 'system');
-            audio.play();
-            
-            audio.onended = () => {
-                URL.revokeObjectURL(audioUrl);
-                log('Audio playback completed', 'system');
-                // Stop the voice animation when audio ends
-                stopVoiceAnimation();
-            };
+            return response;
         } catch (error) {
-            log(`Error processing speech: ${error.message}`, 'error');
+            if (retryCount < MAX_RETRIES) {
+                await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+                return callElevenLabsAPI(endpoint, options, retryCount + 1);
+            }
+            throw error;
         }
     }
-    
-    // Placeholder function for ElevenLabs API call
-    async function callElevenLabsAPI(text, config) {
-        // This function should be implemented by the user based on their ElevenLabs setup
-        console.log('Would call ElevenLabs API with:', { text, config });
-        throw new Error('ElevenLabs API call not implemented');
+
+    // Function to get text-to-speech from ElevenLabs
+    async function textToSpeech(text) {
+        try {
+            const config = await getElevenLabsConfig();
+            if (!config.apiKey || !config.voiceId) {
+                throw new Error('Missing API key or voice ID in configuration');
+            }
+
+            const response = await callElevenLabsAPI(`/text-to-speech/${config.voiceId}`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'audio/mpeg'
+                },
+                body: JSON.stringify({
+                    text,
+                    model_id: config.modelId || 'eleven_monolingual_v1',
+                    voice_settings: config.additionalParams
+                })
+            });
+
+            const audioBuffer = await response.arrayBuffer();
+            await playAudio(audioBuffer);
+        } catch (error) {
+            console.error('Error in text-to-speech:', error);
+            log('Error generating speech: ' + error.message, 'error');
+            throw error;
+        }
     }
-    
+
+    // Function to get AI response from ElevenLabs
+    async function getAIResponse(text) {
+        try {
+            const config = await getElevenLabsConfig();
+            if (!config.apiKey || !config.voiceId) {
+                throw new Error('Missing API key or Voice ID in configuration');
+            }
+
+            // Generate a contextual response based on the input
+            const response = generateKittResponse(text);
+            
+            // Convert the response to speech
+            await textToSpeech(response);
+            
+            return response;
+        } catch (error) {
+            console.error('Error in AI response:', error);
+            log('Error getting AI response: ' + error.message, 'error');
+            throw error;
+        }
+    }
+
+    // Add mode state
+    let currentMode = 'tts'; // 'tts' or 'ai'
+
+    // Function to switch between modes
+    function switchMode(mode) {
+        currentMode = mode;
+        const ttsButton = document.getElementById('btn-tts-mode');
+        const aiButton = document.getElementById('btn-ai-mode');
+        
+        if (mode === 'tts') {
+            ttsButton.classList.add('active');
+            aiButton.classList.remove('active');
+            log('Switched to Text-to-Speech mode', 'system');
+        } else {
+            aiButton.classList.add('active');
+            ttsButton.classList.remove('active');
+            log('Switched to AI Conversation mode', 'system');
+        }
+    }
+
+    // Update the processSpeechInput function to handle both modes
+    async function processSpeechInput(text) {
+        try {
+            log('Processing speech input: ' + text, 'info');
+            addToConversationHistory(text, 'user');
+            
+            let response;
+            if (currentMode === 'tts') {
+                // In TTS mode, just echo back what was said without prefix
+                response = text;
+                await textToSpeech(response);
+            } else {
+                // In AI mode, generate a contextual response
+                response = await getAIResponse(text);
+            }
+            
+            // Add response to the conversation history
+            addToConversationHistory(response, 'kitt');
+            log('KITT: ' + response, 'kitt');
+        } catch (error) {
+            log('Error processing speech: ' + error.message, 'error');
+            addToConversationHistory('Error: ' + error.message, 'system');
+        }
+    }
+
+    // Function to add a message to the conversation history
+    function addToConversationHistory(message, type = 'user') {
+        const history = document.getElementById('conversation-history');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `${type}-message`;
+        messageDiv.textContent = message;
+        history.appendChild(messageDiv);
+        history.scrollTop = history.scrollHeight;
+    }
+
+    // Function to clear the conversation history
+    function clearConversationHistory() {
+        const history = document.getElementById('conversation-history');
+        history.innerHTML = '';
+        window.currentConversationId = null;
+        log('Conversation history cleared', 'system');
+    }
+
+    // Function to copy the conversation history
+    function copyConversationHistory() {
+        const history = document.getElementById('conversation-history');
+        const text = Array.from(history.children)
+            .map(div => div.textContent)
+            .join('\n');
+        
+        navigator.clipboard.writeText(text)
+            .then(() => log('Conversation history copied to clipboard', 'system'))
+            .catch(err => log('Error copying conversation history: ' + err.message, 'error'));
+    }
+
+    // Function to generate KITT's response based on user input
+    function generateKittResponse(input) {
+        // Convert input to lowercase for easier matching
+        input = input.toLowerCase();
+        
+        // Define some basic response patterns
+        const responses = {
+            greeting: [
+                "Hello, Michael. How can I assist you today?",
+                "Greetings, Michael. What can I do for you?",
+                "Hello, Michael. I'm here to help."
+            ],
+            status: [
+                "All systems are functioning normally.",
+                "My diagnostic systems indicate everything is operating within normal parameters.",
+                "I'm running at optimal efficiency."
+            ],
+            mode: [
+                "I am currently in auto-cruise mode.",
+                "We are in normal-cruise mode.",
+                "Pursuit mode is active."
+            ],
+            default: [
+                "I'm processing your request, Michael.",
+                "I understand. Let me help you with that.",
+                "I'll take care of that right away."
+            ]
+        };
+        
+        // Check for keywords and return appropriate response
+        if (input.match(/hello|hi|hey|greetings/)) {
+            return responses.greeting[Math.floor(Math.random() * responses.greeting.length)];
+        }
+        else if (input.match(/status|how are you|diagnostic/)) {
+            return responses.status[Math.floor(Math.random() * responses.status.length)];
+        }
+        else if (input.match(/mode|what mode|current mode/)) {
+            return responses.mode[Math.floor(Math.random() * responses.mode.length)];
+        }
+        else {
+            return responses.default[Math.floor(Math.random() * responses.default.length)];
+        }
+    }
+
     // ElevenLabs Configuration UI
     const configHeader = document.getElementById('config-header');
     const configBody = document.getElementById('config-body');
@@ -428,25 +631,35 @@ document.addEventListener('DOMContentLoaded', function() {
         configHeader.addEventListener('click', toggleConfig);
     }
     
+    // Add configuration storage
+    let elevenLabsConfig = null;
+
     // Function to get ElevenLabs configuration
     async function getElevenLabsConfig() {
+        // Return cached config if available
+        if (elevenLabsConfig) {
+            return elevenLabsConfig;
+        }
+
         try {
             const response = await fetch('/config.json');
             if (!response.ok) {
                 throw new Error('Configuration file not found');
             }
             const config = await response.json();
-            return config.elevenlabs;
+            elevenLabsConfig = config.elevenlabs;
+            return elevenLabsConfig;
         } catch (error) {
             console.error('Error loading configuration:', error);
             // Fall back to form values if config file is not available
-            return {
+            elevenLabsConfig = {
                 apiKey: document.getElementById('api-key').value,
                 voiceId: document.getElementById('voice-id').value,
                 modelId: document.getElementById('model-id').value,
                 agentId: document.getElementById('agent-id').value,
                 additionalParams: document.getElementById('additional-params').value
             };
+            return elevenLabsConfig;
         }
     }
 
@@ -466,6 +679,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 interimResults: false
             }
         };
+        
+        // Update the cached configuration
+        elevenLabsConfig = config.elevenlabs;
         
         // In a production environment, you would typically send this to a server
         // For local development, you can show the configuration to copy manually
@@ -539,4 +755,12 @@ document.addEventListener('DOMContentLoaded', function() {
         micButton.classList.remove('listening');
         statusText.textContent = 'Error occurred. Click to try again.';
     };
+
+    // Add conversation control event listeners
+    document.getElementById('clear-conversation').addEventListener('click', clearConversationHistory);
+    document.getElementById('copy-conversation').addEventListener('click', copyConversationHistory);
+
+    // Add mode switch event listeners
+    document.getElementById('btn-tts-mode').addEventListener('click', () => switchMode('tts'));
+    document.getElementById('btn-ai-mode').addEventListener('click', () => switchMode('ai'));
 });
