@@ -14,25 +14,40 @@ function handleOutsideClick(event) {
 }
 
 // Function to toggle pin state
-function togglePin(event) {
-    event.stopPropagation(); // Prevent panel toggle when clicking pin
+function togglePin() {
     const apiConfig = document.getElementById('api-config');
     const pinIcon = document.getElementById('pin-icon');
     
     apiConfig.classList.toggle('pinned');
     pinIcon.classList.toggle('pinned');
+    
+    // Save pinned state to localStorage
+    localStorage.setItem('kittConfigPinned', apiConfig.classList.contains('pinned'));
 }
 
 // Wait for DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize panel state
     const apiConfig = document.getElementById('api-config');
+    const pinIcon = document.getElementById('pin-icon');
+    
+    // Restore pinned state from localStorage
+    const isPinned = localStorage.getItem('kittConfigPinned') === 'true';
+    if (isPinned) {
+        apiConfig.classList.add('pinned');
+        pinIcon.classList.add('pinned');
+    }
     
     // Ensure panel starts hidden
     apiConfig.classList.remove('visible');
     
     // Add click event listener for clicks outside the panel
     document.addEventListener('click', handleOutsideClick);
+    
+    // Add pin click handler
+    if (pinIcon) {
+        pinIcon.addEventListener('click', togglePin);
+    }
     
     // Generate LED columns for voice modulator
     const voiceModulator = document.getElementById('voice-modulator');
@@ -856,12 +871,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add event listeners for conversation controls
     document.getElementById('start-conversation').addEventListener('click', startConversation);
     document.getElementById('end-conversation').addEventListener('click', endConversation);
-
-    // Add pin click handler
-    const pinIcon = document.getElementById('pin-icon');
-    if (pinIcon) {
-        pinIcon.addEventListener('click', togglePin);
-    }
 
     // Add config toggle button handler
     const configToggleButton = document.getElementById('config-toggle-button');
