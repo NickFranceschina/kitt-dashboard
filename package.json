@@ -1,0 +1,31 @@
+{
+    "name": "kitt-dashboard",
+    "version": "1.0.0",
+    "description": "Interactive KITT dashboard from Knight Rider with voice recognition and ElevenLabs integration",
+    "main": "index.html",
+    "scripts": {
+      "start": "http-server -p 3100 -c-1",
+      "dev": "http-server -p 3200 -c-1 --cors"
+    },
+    "keywords": [
+      "kitt",
+      "knight-rider",
+      "dashboard",
+      "speech-recognition",
+      "elevenlabs"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+      "http-server": "^14.1.1"
+    },
+    "devDependencies": {},
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/yourusername/kitt-dashboard.git"
+    },
+    "bugs": {
+      "url": "https://github.com/yourusername/kitt-dashboard/issues"
+    },
+    "homepage": "https://github.com/yourusername/kitt-dashboard#readme"
+  }

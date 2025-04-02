@@ -1,0 +1,337 @@
+body {
+    background-color: black;
+    color: white;
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+}
+
+.dashboard {
+    background-color: black;
+    width: 600px;
+    height: 400px;
+    border: 4px solid #333;
+    border-radius: 15px;
+    display: flex;
+    position: relative;
+    padding: 20px;
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+    margin-bottom: 20px;
+}
+
+.button-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    margin: 0 20px;
+    width: 70px;
+}
+
+.button {
+    height: 40px;
+    border-radius: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 10px 0;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+    transition: all 0.3s ease;
+}
+
+.amber-button {
+    background-color: #d4a017;
+    color: black;
+}
+
+.amber-button.active {
+    background-color: #ffc125;
+    box-shadow: 0 0 15px #ffc125;
+}
+
+.red-button {
+    background-color: #8b0000;
+    color: white;
+}
+
+.red-button.active {
+    background-color: #ff0000;
+    box-shadow: 0 0 15px #ff0000;
+}
+
+.center-display {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.voice-modulator {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    height: 200px;
+    margin-bottom: 20px;
+    background-color: #111;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.led-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    width: 30px;
+    margin: 0 15px;
+}
+
+.led {
+    height: 10px;
+    background-color: #5e0000;
+    margin: 2px 0;
+    border-radius: 2px;
+    transition: background-color 0.1s ease;
+}
+
+.led.active {
+    background-color: #ff0000;
+    box-shadow: 0 0 10px #ff0000;
+}
+
+.mode-display {
+    display: flex;
+    flex-direction: column;
+    width: 200px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.mode {
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    color: black;
+    margin: 2px 0;
+    transition: all 0.3s ease;
+}
+
+.mode.active {
+    /* Individual colors handled in specific mode classes */
+}
+
+.auto-cruise {
+    background-color: #401c00; /* Very dark orange when inactive */
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.auto-cruise.active {
+    background-color: #ff8c00; /* Brighter orange when active */
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.7);
+    color: black;
+}
+
+.normal-cruise {
+    background-color: #403600; /* Very dark yellow when inactive */
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.normal-cruise.active {
+    background-color: #ffdf00; /* Brighter yellow when active */
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.7);
+    color: black;
+}
+
+.pursuit {
+    background-color: #0a1c2e; /* Very dark blue when inactive */
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.pursuit.active {
+    background-color: #4682b4; /* Brighter blue when active */
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.7);
+    color: black;
+}
+
+.controls {
+    position: absolute;
+    bottom: 10px;
+    display: flex;
+    width: 100%;
+    justify-content: center;
+}
+
+.control-panel {
+    background-color: #333;
+    padding: 10px;
+    border-radius: 5px;
+    margin: 0 10px;
+}
+
+button {
+    margin: 0 5px;
+    padding: 5px 10px;
+    background-color: #666;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #888;
+}
+
+/* Voice Recognition Styles */
+.voice-controls {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.mic-button {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #8b0000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 24px;
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+    position: relative;
+}
+
+.mic-button:after {
+    content: "MIC";
+    position: absolute;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.mic-button:hover {
+    background-color: #ff0000;
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.8);
+}
+
+.mic-button.listening {
+    animation: pulse 1.5s infinite;
+    background-color: #ff0000;
+}
+
+.mic-button.listening:after {
+    content: "TALK";
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 10px rgba(255, 0, 0, 0.5); }
+    50% { transform: scale(1.1); box-shadow: 0 0 20px rgba(255, 0, 0, 0.8); }
+    100% { transform: scale(1); box-shadow: 0 0 10px rgba(255, 0, 0, 0.5); }
+}
+
+.status-text {
+    margin-left: 15px;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #333;
+    min-width: 200px;
+    text-align: center;
+}
+
+/* API Configuration Styles */
+.api-config {
+    width: 600px;
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #222;
+    border-radius: 10px;
+    border: 2px solid #444;
+}
+
+.config-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    cursor: pointer;
+    padding: 10px;
+    background-color: #333;
+    border-radius: 5px;
+    border: 2px solid #555;
+}
+
+.config-header h3 {
+    margin: 0;
+    color: #d4a017;
+}
+
+.config-toggle {
+    color: #d4a017;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.config-body {
+    overflow: hidden;
+    transition: max-height 0.5s ease;
+    max-height: 0;
+}
+
+.config-body.expanded {
+    max-height: 500px;
+    padding: 10px;
+    border: 1px solid #444;
+    border-radius: 5px;
+    margin-top: 5px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #ccc;
+}
+
+.form-group input, .form-group textarea {
+    width: 100%;
+    padding: 8px;
+    background-color: #333;
+    border: 1px solid #555;
+    border-radius: 4px;
+    color: white;
+    font-family: monospace;
+}
+
+.form-group textarea {
+    height: 100px;
+    resize: vertical;
+}
+
+.save-button {
+    background-color: #d4a017;
+    color: black;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.save-button:hover {
+    background-color: #ffc125;
+}

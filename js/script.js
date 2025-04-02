@@ -1,0 +1,454 @@
+// Pre-define toggle function for ElevenLabs config panel
+function toggleConfig() {
+    const configBody = document.getElementById('config-body');
+    const configToggle = document.getElementById('config-toggle');
+    if (configBody && configToggle) {
+        configBody.classList.toggle('expanded');
+        configToggle.textContent = configBody.classList.contains('expanded') ? '-' : '+';
+    }
+}
+
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Generate LED columns for voice modulator
+    const voiceModulator = document.getElementById('voice-modulator');
+    const numColumns = 3; // Only 3 columns like the original
+    const ledsPerColumn = 16;
+    let ledElements = [];
+    
+    for (let col = 0; col < numColumns; col++) {
+        const ledColumn = document.createElement('div');
+        ledColumn.className = 'led-column';
+        const colLeds = [];
+        
+        for (let row = 0; row < ledsPerColumn; row++) {
+            const led = document.createElement('div');
+            led.className = 'led';
+            ledColumn.appendChild(led);
+            colLeds.push(led);
+        }
+        
+        voiceModulator.appendChild(ledColumn);
+        ledElements.push(colLeds);
+    }
+    
+    // Variables for voice animation
+    let voiceAnimationId = null;
+    
+    // Function to animate voice modulator with provided values - diamond pattern
+    function animateVoice(value) {
+        // If an array was passed, use the first value
+        if (Array.isArray(value)) {
+            value = value[0];
+        }
+        
+        // Reset all LEDs
+        for (let col = 0; col < ledElements.length; col++) {
+            for (let row = 0; row < ledElements[col].length; row++) {
+                ledElements[col][row].classList.remove('active');
+            }
+        }
+        
+        // Calculate how many LEDs to light in center column (full value)
+        const centerColumn = 1; // Middle column index
+        const numCenterLeds = Math.floor((value / 100) * ledsPerColumn);
+        
+        // Side columns get fewer LEDs (70% of center height) to create diamond shape
+        const sideColumns = [0, 2]; // Left and right column indices
+        const numSideLeds = Math.floor(numCenterLeds * 0.7);
+        
+        // Light center column
+        const middleIndex = Math.floor(ledsPerColumn / 2);
+        for (let i = 0; i < numCenterLeds; i++) {
+            // Light LEDs symmetrically from middle
+            if (i % 2 === 0) {
+                // Even numbers go up from middle
+                const ledIndex = middleIndex - Math.floor(i/2);
+                if (ledIndex >= 0) {
+                    ledElements[centerColumn][ledIndex].classList.add('active');
+                }
+            } else {
+                // Odd numbers go down from middle
+                const ledIndex = middleIndex + Math.ceil(i/2);
+                if (ledIndex < ledsPerColumn) {
+                    ledElements[centerColumn][ledIndex].classList.add('active');
+                }
+            }
+        }
+        
+        // Light side columns (shorter)
+        for (const colIndex of sideColumns) {
+            for (let i = 0; i < numSideLeds; i++) {
+                // Light LEDs symmetrically from middle
+                if (i % 2 === 0) {
+                    // Even numbers go up from middle
+                    const ledIndex = middleIndex - Math.floor(i/2);
+                    if (ledIndex >= 0) {
+                        ledElements[colIndex][ledIndex].classList.add('active');
+                    }
+                } else {
+                    // Odd numbers go down from middle
+                    const ledIndex = middleIndex + Math.ceil(i/2);
+                    if (ledIndex < ledsPerColumn) {
+                        ledElements[colIndex][ledIndex].classList.add('active');
+                    }
+                }
+            }
+        }
+    }
+    
+    // Function to generate random voice modulator values
+    function randomVoiceAnimation() {
+        // Cancel any existing animation
+        if (voiceAnimationId) {
+            clearInterval(voiceAnimationId);
+        }
+        
+        voiceAnimationId = setInterval(() => {
+            // Create the knight rider scanner effect
+            const time = Date.now() / 150; // Controls speed
+            const baseValue = Math.sin(time) * 0.5 + 0.5; // Value between 0 and 1
+            
+            // Add some randomness for a voice-like effect
+            const randomFactor = 0.2;
+            const randomness = (Math.random() * 2 - 1) * randomFactor;
+            
+            // Scale to 0-100 range
+            const value = Math.max(0, Math.min(100, (baseValue + randomness) * 100));
+            
+            // Animate with a single value (the function will create diamond pattern)
+            animateVoice(value);
+        }, 50);
+    }
+    
+    // Function to stop voice animation
+    function stopVoiceAnimation() {
+        if (voiceAnimationId) {
+            clearInterval(voiceAnimationId);
+            voiceAnimationId = null;
+        }
+        
+        // Turn off all LEDs
+        for (let col = 0; col < ledElements.length; col++) {
+            for (let row = 0; row < ledElements[col].length; row++) {
+                ledElements[col][row].classList.remove('active');
+            }
+        }
+    }
+    
+    // Function to set the display mode
+    function activateMode(mode) {
+        document.getElementById('auto-cruise').classList.remove('active');
+        document.getElementById('normal-cruise').classList.remove('active');
+        document.getElementById('pursuit').classList.remove('active');
+        
+        document.getElementById(mode).classList.add('active');
+    }
+    
+    // Function to toggle a button on/off
+    function toggleButton(id) {
+        const button = document.getElementById(id);
+        button.classList.toggle('active');
+        return button.classList.contains('active');
+    }
+    
+    // Event listeners for mode buttons
+    document.getElementById('btn-auto').addEventListener('click', () => activateMode('auto-cruise'));
+    document.getElementById('btn-normal').addEventListener('click', () => activateMode('normal-cruise'));
+    document.getElementById('btn-pursuit').addEventListener('click', () => activateMode('pursuit'));
+    
+    // Event listeners for voice modulator buttons
+    document.getElementById('btn-voice-random').addEventListener('click', randomVoiceAnimation);
+    document.getElementById('btn-voice-off').addEventListener('click', stopVoiceAnimation);
+    
+    // Event listeners for all buttons
+    document.getElementById('air').addEventListener('click', () => toggleButton('air'));
+    document.getElementById('oil').addEventListener('click', () => toggleButton('oil'));
+    document.getElementById('p1').addEventListener('click', () => toggleButton('p1'));
+    document.getElementById('p2').addEventListener('click', () => toggleButton('p2'));
+    document.getElementById('s1').addEventListener('click', () => toggleButton('s1'));
+    document.getElementById('s2').addEventListener('click', () => toggleButton('s2'));
+    document.getElementById('p3').addEventListener('click', () => toggleButton('p3'));
+    document.getElementById('p4').addEventListener('click', () => toggleButton('p4'));
+    
+    // Toggle all buttons at once
+    document.getElementById('btn-toggle-all').addEventListener('click', () => {
+        toggleButton('air');
+        toggleButton('oil');
+        toggleButton('p1');
+        toggleButton('p2');
+        toggleButton('s1');
+        toggleButton('s2');
+        toggleButton('p3');
+        toggleButton('p4');
+    });
+    
+    // Initialize with auto-cruise mode and start random voice animation
+    activateMode('auto-cruise');
+    randomVoiceAnimation();
+    
+    // API functions that can be called from outside this script
+    
+    // Function to set voice modulator values programmatically
+    window.setVoiceValues = function(value) {
+        // Stop any automatic animation
+        stopVoiceAnimation();
+        // Set the values directly
+        animateVoice(value);
+    };
+    
+    // Function to set a button state programmatically
+    window.setButtonState = function(id, state) {
+        const button = document.getElementById(id);
+        if (state) {
+            button.classList.add('active');
+        } else {
+            button.classList.remove('active');
+        }
+    };
+    
+    // Function to set the mode programmatically
+    window.setMode = function(mode) {
+        if (['auto-cruise', 'normal-cruise', 'pursuit'].includes(mode)) {
+            activateMode(mode);
+        }
+    };
+    
+    // Function to connect to audio
+    window.connectToAudio = function(audioElement) {
+        if (!(audioElement instanceof HTMLAudioElement)) {
+            console.error('Not a valid audio element');
+            return;
+        }
+        
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const analyser = audioContext.createAnalyser();
+        const source = audioContext.createMediaElementSource(audioElement);
+        
+        analyser.fftSize = 32; // Small size because we only need a few data points
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
+        
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        
+        // Stop any current animation
+        stopVoiceAnimation();
+        
+        // Create new animation based on audio
+        voiceAnimationId = setInterval(() => {
+            analyser.getByteFrequencyData(dataArray);
+            
+            // Get average intensity across frequency spectrum
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+            }
+            const average = sum / dataArray.length * 100 / 255;
+            
+            // Animate with a single value (our function creates the diamond pattern)
+            animateVoice(average);
+        }, 50);
+        
+        console.log('Audio connected successfully');
+        return true;
+    };
+    
+    // Speech Recognition Implementation
+    let recognition = null;
+    let isListening = false;
+    const micButton = document.getElementById('mic-button');
+    const statusText = document.getElementById('status-text');
+    
+    // Check if browser supports Speech Recognition
+    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        
+        // Configure speech recognition
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+        
+        // Event handlers for speech recognition
+        recognition.onstart = function() {
+            isListening = true;
+            micButton.classList.add('listening');
+            statusText.textContent = "Listening...";
+            
+            // Activate the voice modulator animation
+            randomVoiceAnimation();
+            
+            // Switch to PURSUIT mode to indicate KITT is listening
+            activateMode('pursuit');
+        };
+        
+        recognition.onresult = function(event) {
+            const speechResult = event.results[0][0].transcript;
+            statusText.textContent = `You said: "${speechResult}"`;
+            
+            // Process the speech result
+            processSpeechInput(speechResult);
+        };
+        
+        recognition.onerror = function(event) {
+            console.error('Speech recognition error:', event.error);
+            statusText.textContent = `Error: ${event.error}`;
+            stopListening();
+        };
+        
+        recognition.onend = function() {
+            stopListening();
+        };
+    } else {
+        statusText.textContent = "Sorry, your browser doesn't support speech recognition";
+        micButton.disabled = true;
+    }
+    
+    // Start/stop listening on mic button click
+    micButton.addEventListener('click', function() {
+        if (!isListening) {
+            startListening();
+        } else {
+            stopListening();
+        }
+    });
+    
+    function startListening() {
+        if (recognition) {
+            recognition.start();
+        }
+    }
+    
+    function stopListening() {
+        if (recognition) {
+            recognition.stop();
+        }
+        isListening = false;
+        micButton.classList.remove('listening');
+        statusText.textContent = "Click the microphone to speak to KITT";
+        
+        // Return to normal state
+        activateMode('auto-cruise');
+        randomVoiceAnimation();
+    }
+    
+    // Process speech input and interact with ElevenLabs
+    async function processSpeechInput(text) {
+        try {
+            // Change to normal cruise mode to indicate processing
+            activateMode('normal-cruise');
+            
+            // Get ElevenLabs configuration
+            const config = getElevenLabsConfig();
+            
+            // Call ElevenLabs API (this is a placeholder - implement the actual API call)
+            statusText.textContent = "Processing your request...";
+            
+            // Simulate a delay for demonstration purposes
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // This is where you would make the actual API call to ElevenLabs
+            // const response = await callElevenLabsAPI(text, config);
+            
+            // For demonstration, we'll just display a mock response
+            const mockResponse = "I'm sorry, Michael, I don't have access to that information.";
+            statusText.textContent = `KITT says: "${mockResponse}"`;
+            
+            // Here you would normally create an audio element and play the response
+            // const audioBlob = new Blob([response], { type: 'audio/mpeg' });
+            // const audioUrl = URL.createObjectURL(audioBlob);
+            // const audio = new Audio(audioUrl);
+            // window.connectToAudio(audio);
+            // audio.play();
+            
+            // Instead, we'll just animate the voice modulator
+            randomVoiceAnimation();
+            
+            // Activate Auto Cruise mode
+            activateMode('auto-cruise');
+        } catch (error) {
+            console.error('Error processing speech:', error);
+            statusText.textContent = "Sorry, I couldn't process that request.";
+            activateMode('auto-cruise');
+        }
+    }
+    
+    // Placeholder function for ElevenLabs API call
+    async function callElevenLabsAPI(text, config) {
+        // This function should be implemented by the user based on their ElevenLabs setup
+        console.log('Would call ElevenLabs API with:', { text, config });
+        throw new Error('ElevenLabs API call not implemented');
+    }
+    
+    // ElevenLabs Configuration UI
+    const configHeader = document.getElementById('config-header');
+    const configBody = document.getElementById('config-body');
+    const configToggle = document.getElementById('config-toggle');
+    const saveConfigButton = document.getElementById('save-config');
+    
+    // Add click event listener to the config header
+    if (configHeader) {
+        configHeader.addEventListener('click', toggleConfig);
+    }
+    
+    // Save configuration
+    saveConfigButton.addEventListener('click', function() {
+        const config = {
+            apiKey: document.getElementById('api-key').value,
+            voiceId: document.getElementById('voice-id').value,
+            modelId: document.getElementById('model-id').value,
+            agentId: document.getElementById('agent-id').value,
+            additionalParams: document.getElementById('additional-params').value
+        };
+        
+        // Save to local storage (encrypted in a real application)
+        localStorage.setItem('elevenLabsConfig', JSON.stringify(config));
+        
+        // Provide feedback
+        alert('Configuration saved!');
+    });
+    
+    // Function to get ElevenLabs configuration
+    function getElevenLabsConfig() {
+        const storedConfig = localStorage.getItem('elevenLabsConfig');
+        if (storedConfig) {
+            const config = JSON.parse(storedConfig);
+            
+            // Parse additional parameters if present
+            if (config.additionalParams) {
+                try {
+                    config.additionalParams = JSON.parse(config.additionalParams);
+                } catch (error) {
+                    console.error('Error parsing additional parameters:', error);
+                }
+            }
+            
+            return config;
+        }
+        
+        return {
+            apiKey: document.getElementById('api-key').value,
+            voiceId: document.getElementById('voice-id').value,
+            modelId: document.getElementById('model-id').value,
+            agentId: document.getElementById('agent-id').value,
+            additionalParams: document.getElementById('additional-params').value
+        };
+    }
+    
+    // Load saved configuration on page load
+    window.addEventListener('load', function() {
+        const storedConfig = localStorage.getItem('elevenLabsConfig');
+        if (storedConfig) {
+            const config = JSON.parse(storedConfig);
+            document.getElementById('api-key').value = config.apiKey || '';
+            document.getElementById('voice-id').value = config.voiceId || '';
+            document.getElementById('model-id').value = config.modelId || 'eleven_monolingual_v1';
+            document.getElementById('agent-id').value = config.agentId || '';
+            document.getElementById('additional-params').value = 
+                typeof config.additionalParams === 'string' 
+                    ? config.additionalParams 
+                    : JSON.stringify(config.additionalParams || {}, null, 2);
+        }
+    });
+});
