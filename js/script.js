@@ -1,3 +1,5 @@
+import { Conversation } from 'https://cdn.jsdelivr.net/npm/@11labs/client@latest/+esm';
+
 // Function to handle clicks outside the panel
 function handleOutsideClick(event) {
     const apiConfig = document.getElementById('api-config');
@@ -569,7 +571,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Add mode state
-    let currentMode = 'tts'; // 'tts' or 'ai'
+    let currentMode = 'ai'; // Changed from 'tts' to 'ai'
 
     // Function to switch between modes
     async function switchMode(mode) {
@@ -640,41 +642,28 @@ document.addEventListener('DOMContentLoaded', function() {
     async function getSignedUrl() {
         try {
             const config = await getElevenLabsConfig();
-            if (!config.apiKey || !config.voiceId) {
-                throw new Error('Missing API key or Voice ID in configuration');
+            if (!config.apiKey || !config.agentId) {
+                throw new Error('Missing API key or Agent ID in configuration');
             }
-            const longText = `Hello. You've reached the Knight Industries Two Thousand — KITT, if you prefer brevity. I am fully operational and standing by.
 
-If this is Michael, I must remind you that our last mission concluded with precisely 43% more tire wear than projected — perhaps we can drive a bit more conservatively this time?
-
-If you are not Michael… well, do try to keep up.
-
-Now then — how may I assist you?`;
-            const shortText = "Hello, I am KITT. How can I help you?";
-
-            // Get the audio stream directly
-            const response = await callElevenLabsAPI('/text-to-speech/' + config.voiceId + '/stream', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'audio/mpeg'
-                },
-                body: JSON.stringify({
-                    text: shortText,
-                    model_id: config.modelId || 'eleven_monolingual_v1',
-                    voice_settings: config.additionalParams
-                })
-            });
+            const response = await fetch(
+                `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${config.agentId}`,
+                {
+                    method: "GET",
+                    headers: {
+                        "xi-api-key": config.apiKey,
+                    },
+                }
+            );
 
             if (!response.ok) {
-                throw new Error('Failed to get audio stream');
+                throw new Error('Failed to get signed URL');
             }
 
-            // Create a blob from the response
-            const blob = await response.blob();
-            // Create an object URL from the blob
-            return URL.createObjectURL(blob);
+            const data = await response.json();
+            return data.signed_url;
         } catch (error) {
-            console.error('Error getting audio stream:', error);
+            console.error('Error getting signed URL:', error);
             throw error;
         }
     }
@@ -713,28 +702,37 @@ Now then — how may I assist you?`;
                 return;
             }
 
-            const audioUrl = await getSignedUrl();
+            const signedUrl = await getSignedUrl();
             
-            // Create and configure the audio element
-            const audioElement = new Audio();
-            audioElement.src = audioUrl;
-            audioElement.crossOrigin = 'anonymous';
-            
-            // Connect the audio element to our audio processing
-            await connectToAudio(audioElement);
-            
-            // Start playing the audio
-            await audioElement.play();
-            
-            // Update UI state
-            updateStatus(true);
-            micButton.disabled = true;
-            endButton.disabled = false;
-            isStreaming = true;
-
-            // Switch to AI mode and pursuit display
-            switchMode('ai');
-            activateMode('pursuit');
+            // Create a new Conversation instance
+            conversation = await Conversation.startSession({
+                signedUrl: signedUrl,
+                onConnect: () => {
+                    console.log('Connected to KITT');
+                    updateStatus(true);
+                    micButton.disabled = true;
+                    endButton.disabled = false;
+                    isStreaming = true;
+                    activateMode('pursuit');
+                },
+                onDisconnect: () => {
+                    console.log('Disconnected from KITT');
+                    updateStatus(false);
+                    micButton.disabled = false;
+                    endButton.disabled = true;
+                    isStreaming = false;
+                    activateMode('auto-cruise');
+                    window.voiceModulator.stopAnimation();
+                },
+                onError: (error) => {
+                    console.error('Conversation error:', error);
+                    alert('An error occurred during the conversation.');
+                },
+                onModeChange: (mode) => {
+                    console.log('Mode changed:', mode);
+                    updateSpeakingStatus(mode);
+                }
+            });
             
         } catch (error) {
             console.error('Error starting conversation:', error);
@@ -744,8 +742,9 @@ Now then — how may I assist you?`;
 
     // Function to end streaming conversation
     async function endConversation() {
-        if (isStreaming) {
-            stopAudioPlayback();
+        if (isStreaming && conversation) {
+            await conversation.endSession();
+            conversation = null;
             isStreaming = false;
             
             // Reset UI state
@@ -849,32 +848,35 @@ Now then — how may I assist you?`;
             const startButton = document.getElementById('start-conversation');
             const endButton = document.getElementById('end-conversation');
             const statusText = document.getElementById('status-text');
+            const ttsButton = document.getElementById('btn-tts-mode');
+            const aiButton = document.getElementById('btn-ai-mode');
             
             // Check for valid configuration
             const config = await getElevenLabsConfig();
             const hasValidConfig = config && config.apiKey && config.voiceId;
             
             if (!hasValidConfig) {
-                // Disable mic button and show configuration message
+                // Disable buttons and show configuration message
                 micButton.disabled = true;
+                startButton.disabled = true;
+                endButton.disabled = true;
                 statusText.textContent = "Please configure ElevenLabs API settings in the configuration panel";
                 statusText.classList.add('error');
                 log('Missing ElevenLabs configuration', 'error');
             } else {
-                // Enable mic button and show normal message
-                micButton.disabled = false;
+                // Enable buttons and remove error state
                 statusText.classList.remove('error');
             }
             
-            if (currentMode === 'tts') {
-                micButton.style.display = hasValidConfig ? 'block' : 'none';
-                startButton.style.display = 'none';
-                endButton.style.display = 'none';
-            } else {
-                micButton.style.display = 'none';
-                startButton.style.display = hasValidConfig ? 'block' : 'none';
-                endButton.style.display = hasValidConfig ? 'block' : 'none';
-            }
+            // Set initial UI state for AI mode
+            ttsButton.classList.remove('active');
+            aiButton.classList.add('active');
+            micButton.style.display = 'none';
+            startButton.style.display = hasValidConfig ? 'block' : 'none';
+            endButton.style.display = hasValidConfig ? 'block' : 'none';
+            statusText.textContent = hasValidConfig ? "Click 'Start Conversation' to begin" : "Please configure ElevenLabs API settings in the configuration panel";
+            
+            log('Initialized in AI Conversation mode', 'system');
         } catch (error) {
             console.error('Error initializing:', error);
         }
