@@ -105,20 +105,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         voiceAnimationId = setInterval(() => {
-            // Create the knight rider scanner effect
-            const time = Date.now() / 150; // Controls speed
-            const baseValue = Math.sin(time) * 0.5 + 0.5; // Value between 0 and 1
+            // Create multiple wave patterns for more dynamic movement
+            const time = Date.now() / 50; // Doubled speed
+            const baseValue1 = Math.sin(time) * 0.5 + 0.5; // Primary wave
+            const baseValue2 = Math.sin(time * 2.5) * 0.4 + 0.5; // Faster secondary wave
+            const baseValue3 = Math.sin(time * 1.2) * 0.3 + 0.5; // Tertiary wave
             
-            // Add some randomness for a voice-like effect
-            const randomFactor = 0.2;
+            // Combine waves with different phases and amplitudes
+            const combinedValue = (baseValue1 * 0.4 + baseValue2 * 0.4 + baseValue3 * 0.2);
+            
+            // Add more dynamic randomness
+            const randomFactor = 0.4; // Increased randomness
             const randomness = (Math.random() * 2 - 1) * randomFactor;
             
-            // Scale to 0-100 range
-            const value = Math.max(0, Math.min(100, (baseValue + randomness) * 100));
+            // Add more frequent spikes for more dramatic effect
+            const spikeChance = 0.1; // 10% chance of a spike
+            const spikeValue = Math.random() < spikeChance ? 2.0 : 1;
+            
+            // Scale to 0-100 range with spikes and more sensitivity
+            const value = Math.max(0, Math.min(100, (combinedValue + randomness) * 120 * spikeValue));
             
             // Animate with a single value (the function will create diamond pattern)
             animateVoice(value);
-        }, 50);
+        }, 20); // Reduced interval for even smoother animation
     }
     
     // Function to stop voice animation
@@ -185,7 +194,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize with auto-cruise mode and start random voice animation
     activateMode('auto-cruise');
-    randomVoiceAnimation();
     
     // API functions that can be called from outside this script
     
@@ -225,7 +233,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const analyser = audioContext.createAnalyser();
         const source = audioContext.createMediaElementSource(audioElement);
         
-        analyser.fftSize = 32; // Small size because we only need a few data points
+        analyser.fftSize = 64; // Increased for more frequency bands
+        analyser.smoothingTimeConstant = 0.3; // Reduced for faster response
         source.connect(analyser);
         analyser.connect(audioContext.destination);
         
@@ -239,16 +248,31 @@ document.addEventListener('DOMContentLoaded', function() {
         voiceAnimationId = setInterval(() => {
             analyser.getByteFrequencyData(dataArray);
             
-            // Get average intensity across frequency spectrum
+            // Get weighted average intensity across frequency spectrum
             let sum = 0;
+            let weightSum = 0;
             for (let i = 0; i < dataArray.length; i++) {
-                sum += dataArray[i];
+                // Weight higher frequencies more heavily for more dynamic response
+                const weight = 1 + (i / dataArray.length);
+                sum += dataArray[i] * weight;
+                weightSum += weight;
             }
-            const average = sum / dataArray.length * 100 / 255;
+            const average = (sum / weightSum) * 120 / 255; // Increased sensitivity
+            
+            // Add some randomness for more organic movement
+            const randomFactor = 0.2;
+            const randomness = (Math.random() * 2 - 1) * randomFactor;
+            
+            // Add occasional spikes for dramatic effect
+            const spikeChance = 0.05;
+            const spikeValue = Math.random() < spikeChance ? 1.5 : 1;
+            
+            // Scale to 0-100 range with spikes
+            const value = Math.max(0, Math.min(100, average * spikeValue));
             
             // Animate with a single value (our function creates the diamond pattern)
-            animateVoice(average);
-        }, 50);
+            animateVoice(value);
+        }, 20); // Reduced interval for smoother animation
         
         console.log('Audio connected successfully');
         return true;
@@ -336,41 +360,53 @@ document.addEventListener('DOMContentLoaded', function() {
     // Process speech input and interact with ElevenLabs
     async function processSpeechInput(text) {
         try {
-            // Change to normal cruise mode to indicate processing
-            activateMode('normal-cruise');
-            
-            // Get ElevenLabs configuration
+            log('Processing speech input...', 'system');
             const config = await getElevenLabsConfig();
             
-            // Call ElevenLabs API (this is a placeholder - implement the actual API call)
-            statusText.textContent = "Processing your request...";
+            if (!config.apiKey || !config.voiceId) {
+                log('Missing API key or voice ID in configuration', 'error');
+                return;
+            }
+
+            log('Sending request to ElevenLabs API...', 'api');
+            const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${config.voiceId}`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'audio/mpeg',
+                    'Content-Type': 'application/json',
+                    'xi-api-key': config.apiKey
+                },
+                body: JSON.stringify({
+                    text: text,
+                    model_id: config.modelId || 'eleven_monolingual_v1',
+                    ...config.additionalParams
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.text();
+                log(`ElevenLabs API error: ${error}`, 'error');
+                return;
+            }
+
+            const audioBlob = await response.blob();
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
             
-            // Simulate a delay for demonstration purposes
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // Connect the audio to the voice modulator display
+            window.connectToAudio(audio);
             
-            // This is where you would make the actual API call to ElevenLabs
-            // const response = await callElevenLabsAPI(text, config);
+            log('Audio received, playing response...', 'system');
+            audio.play();
             
-            // For demonstration, we'll just display a mock response
-            const mockResponse = "I'm sorry, Michael, I don't have access to that information.";
-            statusText.textContent = `KITT says: "${mockResponse}"`;
-            
-            // Here you would normally create an audio element and play the response
-            // const audioBlob = new Blob([response], { type: 'audio/mpeg' });
-            // const audioUrl = URL.createObjectURL(audioBlob);
-            // const audio = new Audio(audioUrl);
-            // window.connectToAudio(audio);
-            // audio.play();
-            
-            // Instead, we'll just animate the voice modulator
-            randomVoiceAnimation();
-            
-            // Activate Auto Cruise mode
-            activateMode('auto-cruise');
+            audio.onended = () => {
+                URL.revokeObjectURL(audioUrl);
+                log('Audio playback completed', 'system');
+                // Stop the voice animation when audio ends
+                stopVoiceAnimation();
+            };
         } catch (error) {
-            console.error('Error processing speech:', error);
-            statusText.textContent = "Sorry, I couldn't process that request.";
-            activateMode('auto-cruise');
+            log(`Error processing speech: ${error.message}`, 'error');
         }
     }
     
@@ -503,52 +539,4 @@ document.addEventListener('DOMContentLoaded', function() {
         micButton.classList.remove('listening');
         statusText.textContent = 'Error occurred. Click to try again.';
     };
-
-    // Update processSpeechInput function
-    async function processSpeechInput(text) {
-        try {
-            log('Processing speech input...', 'system');
-            const config = await getElevenLabsConfig();
-            
-            if (!config.apiKey || !config.voiceId) {
-                log('Missing API key or voice ID in configuration', 'error');
-                return;
-            }
-
-            log('Sending request to ElevenLabs API...', 'api');
-            const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${config.voiceId}`, {
-                method: 'POST',
-                headers: {
-                    'Accept': 'audio/mpeg',
-                    'Content-Type': 'application/json',
-                    'xi-api-key': config.apiKey
-                },
-                body: JSON.stringify({
-                    text: text,
-                    model_id: config.modelId || 'eleven_monolingual_v1',
-                    ...config.additionalParams
-                })
-            });
-
-            if (!response.ok) {
-                const error = await response.text();
-                log(`ElevenLabs API error: ${error}`, 'error');
-                return;
-            }
-
-            const audioBlob = await response.blob();
-            const audioUrl = URL.createObjectURL(audioBlob);
-            const audio = new Audio(audioUrl);
-            
-            log('Audio received, playing response...', 'system');
-            audio.play();
-            
-            audio.onended = () => {
-                URL.revokeObjectURL(audioUrl);
-                log('Audio playback completed', 'system');
-            };
-        } catch (error) {
-            log(`Error processing speech: ${error.message}`, 'error');
-        }
-    }
 });
