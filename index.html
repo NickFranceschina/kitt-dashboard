@@ -43,33 +43,28 @@
         </button>
         <div class="config-header" id="config-header">
             <h3>ElevenLabs Configuration</h3>
-            <div class="config-toggle" id="config-toggle">
-                <span class="pin-icon" id="pin-icon">📌</span>
-                <span class="toggle-icon">-</span>
-            </div>
         </div>
-        <div class="config-body expanded" id="config-body">
-            <div class="form-group">
-                <label for="api-key">ElevenLabs API Key:</label>
-                <input type="password" id="api-key" placeholder="Your ElevenLabs API Key">
-            </div>
-            <div class="form-group">
-                <label for="voice-id">Voice ID:</label>
-                <input type="text" id="voice-id" placeholder="Your ElevenLabs Voice ID">
-            </div>
-            <div class="form-group">
-                <label for="model-id">Model ID:</label>
-                <input type="text" id="model-id" placeholder="eleven_monolingual_v1" value="eleven_monolingual_v1">
-            </div>
-            <div class="form-group">
-                <label for="agent-id">Agent ID (if using ElevenLabs Agent):</label>
-                <input type="text" id="agent-id" placeholder="Your ElevenLabs Agent ID">
-            </div>
-            <div class="form-group">
-                <label for="additional-params">Additional Parameters (JSON):</label>
-                <textarea id="additional-params" placeholder='{"stability": 0.5, "similarity_boost": 0.75}' rows="6" style="width: 100%;"></textarea>
-            </div>
-            <button id="save-config" class="save-button">Save Configuration</button>
+        <div class="config-section">
+            <h4>Configuration (JSON)</h4>
+            <textarea id="config-json" rows="20" style="width: 100%; font-family: monospace; white-space: pre; overflow-x: auto;" placeholder='{
+    "elevenlabs": {
+        "apiKey": "your-api-key-here",
+        "voiceId": "your-voice-id-here",
+        "modelId": "eleven_monolingual_v1",
+        "agentId": "your-agent-id-here-optional",
+        "additionalParams": {
+            "stability": 0.5,
+            "similarity_boost": 0.75,
+            "style": 0.0,
+            "use_speaker_boost": true
+        }
+    },
+    "speech": {
+        "language": "en-US",
+        "continuous": false,
+        "interimResults": false
+    }
+}'></textarea>
         </div>
         <div class="control-panel">
             <span>Voice:</span>

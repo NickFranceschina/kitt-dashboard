@@ -1,27 +1,3 @@
-// Pre-define toggle function for ElevenLabs config panel
-function toggleConfig() {
-    const configBody = document.getElementById('config-body');
-    const configToggle = document.getElementById('config-toggle');
-    const toggleIcon = configToggle.querySelector('.toggle-icon');
-    const apiConfig = document.getElementById('api-config');
-    const toggleButton = document.getElementById('config-toggle-button');
-    
-    if (configBody && configToggle) {
-        // Toggle the expanded state
-        configBody.classList.toggle('expanded');
-        toggleIcon.textContent = configBody.classList.contains('expanded') ? '-' : '+';
-        
-        // Show/hide the panel
-        if (configBody.classList.contains('expanded')) {
-            apiConfig.classList.add('visible');
-            toggleButton.classList.add('active');
-        } else {
-            apiConfig.classList.remove('visible');
-            toggleButton.classList.remove('active');
-        }
-    }
-}
-
 // Function to handle clicks outside the panel
 function handleOutsideClick(event) {
     const apiConfig = document.getElementById('api-config');
@@ -31,10 +7,8 @@ function handleOutsideClick(event) {
     if (!apiConfig.contains(event.target) && !configToggleButton.contains(event.target)) {
         // Only close if not pinned
         if (!apiConfig.classList.contains('pinned')) {
-            const configBody = document.getElementById('config-body');
-            if (configBody.classList.contains('expanded')) {
-                toggleConfig();
-            }
+            apiConfig.classList.remove('visible');
+            configToggleButton.classList.remove('active');
         }
     }
 }
@@ -53,12 +27,9 @@ function togglePin(event) {
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize panel state
     const apiConfig = document.getElementById('api-config');
-    const toggleIcon = document.querySelector('.toggle-icon');
     
     // Ensure panel starts hidden
     apiConfig.classList.remove('visible');
-    document.getElementById('config-body').classList.remove('expanded');
-    toggleIcon.textContent = '+';
     
     // Add click event listener for clicks outside the panel
     document.addEventListener('click', handleOutsideClick);
@@ -786,89 +757,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ElevenLabs Configuration UI
     const configHeader = document.getElementById('config-header');
-    const configBody = document.getElementById('config-body');
-    const configToggle = document.getElementById('config-toggle');
-    const saveConfigButton = document.getElementById('save-config');
     
-    // Add click event listener to the config header
-    if (configHeader) {
-        configHeader.addEventListener('click', toggleConfig);
-    }
-    
-    // Add configuration storage
-    let elevenLabsConfig = null;
-
     // Function to get ElevenLabs configuration
     async function getElevenLabsConfig() {
-        // Return cached config if available
-        if (elevenLabsConfig) {
-            return elevenLabsConfig;
-        }
-
         try {
-            const response = await fetch('/config.json');
-            if (!response.ok) {
-                throw new Error('Configuration file not found');
+            const configText = document.getElementById('config-json').value;
+            const config = JSON.parse(configText);
+            
+            // Validate the configuration structure
+            if (!config.elevenlabs || !config.elevenlabs.apiKey || !config.elevenlabs.voiceId) {
+                throw new Error('Invalid configuration: Missing required fields (apiKey, voiceId)');
             }
-            const config = await response.json();
-            elevenLabsConfig = config.elevenlabs;
-            return elevenLabsConfig;
+            
+            return config.elevenlabs;
         } catch (error) {
-            console.error('Error loading configuration:', error);
-            // Fall back to form values if config file is not available
-            elevenLabsConfig = {
-                apiKey: document.getElementById('api-key').value,
-                voiceId: document.getElementById('voice-id').value,
-                modelId: document.getElementById('model-id').value,
-                agentId: document.getElementById('agent-id').value,
-                additionalParams: document.getElementById('additional-params').value
-            };
-            return elevenLabsConfig;
+            console.error('Error parsing configuration:', error);
+            return null;
         }
     }
-
-    // Function to save configuration
-    async function saveConfig() {
-        const config = {
-            elevenlabs: {
-                apiKey: document.getElementById('api-key').value,
-                voiceId: document.getElementById('voice-id').value,
-                modelId: document.getElementById('model-id').value,
-                agentId: document.getElementById('agent-id').value,
-                additionalParams: document.getElementById('additional-params').value
-            },
-            speech: {
-                language: 'en-US',
-                continuous: false,
-                interimResults: false
-            }
-        };
-        
-        // Update the cached configuration
-        elevenLabsConfig = config.elevenlabs;
-        
-        // In a production environment, you would typically send this to a server
-        // For local development, you can show the configuration to copy manually
-        console.log('Configuration to save to config.json:', JSON.stringify(config, null, 2));
-        alert('Please copy the configuration from the console and save it to config.json');
-    }
-
-    // Update the save button click handler
-    saveConfigButton.addEventListener('click', saveConfig);
-
+    
     // Load configuration on page load
     window.addEventListener('load', async function() {
         try {
-            const config = await getElevenLabsConfig();
-            document.getElementById('api-key').value = config.apiKey || '';
-            document.getElementById('voice-id').value = config.voiceId || '';
-            document.getElementById('model-id').value = config.modelId || 'eleven_monolingual_v1';
-            document.getElementById('agent-id').value = config.agentId || '';
-            document.getElementById('additional-params').value = 
-                typeof config.additionalParams === 'object' 
-                    ? JSON.stringify(config.additionalParams, null, 2)
-                    : config.additionalParams || '';
-
             // Initialize button visibility based on current mode
             const micButton = document.getElementById('mic-button');
             const startButton = document.getElementById('start-conversation');
@@ -884,7 +794,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 endButton.style.display = 'block';
             }
         } catch (error) {
-            console.error('Error loading configuration:', error);
+            console.error('Error initializing:', error);
         }
     });
 
@@ -959,3 +869,15 @@ document.addEventListener('DOMContentLoaded', function() {
         configToggleButton.addEventListener('click', toggleConfig);
     }
 });
+
+// Pre-define toggle function for ElevenLabs config panel
+function toggleConfig() {
+    const apiConfig = document.getElementById('api-config');
+    const toggleButton = document.getElementById('config-toggle-button');
+    
+    if (apiConfig && toggleButton) {
+        // Show/hide the panel
+        apiConfig.classList.toggle('visible');
+        toggleButton.classList.toggle('active');
+    }
+}
