@@ -27,6 +27,172 @@ function togglePin() {
 
 // Wait for DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
+    // Voice Modulator Class
+    class VoiceModulator {
+        constructor() {
+            this.ledElements = [];
+            this.animationId = null;
+            this.isPlaying = false;
+            // Don't initialize LEDs here, we'll do it explicitly
+        }
+
+        initializeLEDs() {
+            const voiceModulator = document.getElementById('voice-modulator');
+            const numColumns = 3;
+            const ledsPerColumn = 16;
+            
+            // Clear existing content
+            voiceModulator.innerHTML = '';
+            
+            for (let col = 0; col < numColumns; col++) {
+                const ledColumn = document.createElement('div');
+                ledColumn.className = 'led-column';
+                const colLeds = [];
+                
+                for (let row = 0; row < ledsPerColumn; row++) {
+                    const led = document.createElement('div');
+                    led.className = 'led';
+                    ledColumn.appendChild(led);
+                    colLeds.push(led);
+                }
+                
+                voiceModulator.appendChild(ledColumn);
+                this.ledElements.push(colLeds);
+            }
+        }
+
+        animateVoice(value) {
+            // If an array was passed, use the first value
+            if (Array.isArray(value)) {
+                value = value[0];
+            }
+            
+            // Reset all LEDs
+            for (let col = 0; col < this.ledElements.length; col++) {
+                for (let row = 0; row < this.ledElements[col].length; row++) {
+                    this.ledElements[col][row].classList.remove('active');
+                }
+            }
+            
+            // Calculate how many LEDs to light in center column (full value)
+            const centerColumn = 1; // Middle column index
+            const numCenterLeds = Math.floor((value / 100) * this.ledElements[0].length);
+            
+            // Side columns get fewer LEDs (70% of center height) to create diamond shape
+            const sideColumns = [0, 2]; // Left and right column indices
+            const numSideLeds = Math.floor(numCenterLeds * 0.7);
+            
+            // Light center column
+            const middleIndex = Math.floor(this.ledElements[0].length / 2);
+            for (let i = 0; i < numCenterLeds; i++) {
+                // Light LEDs symmetrically from middle
+                if (i % 2 === 0) {
+                    // Even numbers go up from middle
+                    const ledIndex = middleIndex - Math.floor(i/2);
+                    if (ledIndex >= 0) {
+                        this.ledElements[centerColumn][ledIndex].classList.add('active');
+                    }
+                } else {
+                    // Odd numbers go down from middle
+                    const ledIndex = middleIndex + Math.ceil(i/2);
+                    if (ledIndex < this.ledElements[0].length) {
+                        this.ledElements[centerColumn][ledIndex].classList.add('active');
+                    }
+                }
+            }
+            
+            // Light side columns (shorter)
+            for (const colIndex of sideColumns) {
+                for (let i = 0; i < numSideLeds; i++) {
+                    // Light LEDs symmetrically from middle
+                    if (i % 2 === 0) {
+                        // Even numbers go up from middle
+                        const ledIndex = middleIndex - Math.floor(i/2);
+                        if (ledIndex >= 0) {
+                            this.ledElements[colIndex][ledIndex].classList.add('active');
+                        }
+                    } else {
+                        // Odd numbers go down from middle
+                        const ledIndex = middleIndex + Math.ceil(i/2);
+                        if (ledIndex < this.ledElements[0].length) {
+                            this.ledElements[colIndex][ledIndex].classList.add('active');
+                        }
+                    }
+                }
+            }
+        }
+
+        startRandomAnimation() {
+            // Cancel any existing animation
+            this.stopAnimation();
+            
+            this.animationId = setInterval(() => {
+                // Create multiple wave patterns for more dynamic movement
+                const time = Date.now() / 50; // Doubled speed
+                const baseValue1 = Math.sin(time) * 0.5 + 0.5; // Primary wave
+                const baseValue2 = Math.sin(time * 2.5) * 0.4 + 0.5; // Faster secondary wave
+                const baseValue3 = Math.sin(time * 1.2) * 0.3 + 0.5; // Tertiary wave
+                
+                // Combine waves with different phases and amplitudes
+                const combinedValue = (baseValue1 * 0.4 + baseValue2 * 0.4 + baseValue3 * 0.2);
+                
+                // Add more dynamic randomness
+                const randomFactor = 0.4; // Increased randomness
+                const randomness = (Math.random() * 2 - 1) * randomFactor;
+                
+                // Add more frequent spikes for more dramatic effect
+                const spikeChance = 0.1; // 10% chance of a spike
+                const spikeValue = Math.random() < spikeChance ? 2.0 : 1;
+                
+                // Scale to 0-100 range with spikes and more sensitivity
+                const value = Math.max(0, Math.min(100, (combinedValue + randomness) * 120 * spikeValue));
+                
+                this.animateVoice(value);
+            }, 20); // Reduced interval for even smoother animation
+        }
+
+        startPlaybackAnimation(duration) {
+            this.stopAnimation();
+            this.isPlaying = true;
+            const startTime = Date.now();
+            
+            const animatePlayback = () => {
+                if (!this.isPlaying) return;
+                
+                const elapsed = Date.now() - startTime;
+                if (elapsed < duration) {
+                    // Create a wave pattern based on elapsed time
+                    const progress = elapsed / duration;
+                    const value = Math.sin(progress * Math.PI * 8) * 50 + 50;
+                    this.animateVoice(value);
+                    requestAnimationFrame(animatePlayback);
+                } else {
+                    this.stopAnimation();
+                }
+            };
+            
+            animatePlayback();
+        }
+
+        stopAnimation() {
+            if (this.animationId) {
+                clearInterval(this.animationId);
+                this.animationId = null;
+            }
+            this.isPlaying = false;
+            
+            // Turn off all LEDs
+            for (let col = 0; col < this.ledElements.length; col++) {
+                for (let row = 0; row < this.ledElements[col].length; row++) {
+                    this.ledElements[col][row].classList.remove('active');
+                }
+            }
+        }
+    }
+
+    // Create voice modulator instance and make it globally available
+    window.voiceModulator = new VoiceModulator();
+
     // Initialize panel state
     const apiConfig = document.getElementById('api-config');
     const pinIcon = document.getElementById('pin-icon');
@@ -49,140 +215,8 @@ document.addEventListener('DOMContentLoaded', function() {
         pinIcon.addEventListener('click', togglePin);
     }
     
-    // Generate LED columns for voice modulator
-    const voiceModulator = document.getElementById('voice-modulator');
-    const numColumns = 3; // Only 3 columns like the original
-    const ledsPerColumn = 16;
-    let ledElements = [];
-    
-    for (let col = 0; col < numColumns; col++) {
-        const ledColumn = document.createElement('div');
-        ledColumn.className = 'led-column';
-        const colLeds = [];
-        
-        for (let row = 0; row < ledsPerColumn; row++) {
-            const led = document.createElement('div');
-            led.className = 'led';
-            ledColumn.appendChild(led);
-            colLeds.push(led);
-        }
-        
-        voiceModulator.appendChild(ledColumn);
-        ledElements.push(colLeds);
-    }
-    
-    // Variables for voice animation
-    let voiceAnimationId = null;
-    
-    // Function to animate voice modulator with provided values - diamond pattern
-    function animateVoice(value) {
-        // If an array was passed, use the first value
-        if (Array.isArray(value)) {
-            value = value[0];
-        }
-        
-        // Reset all LEDs
-        for (let col = 0; col < ledElements.length; col++) {
-            for (let row = 0; row < ledElements[col].length; row++) {
-                ledElements[col][row].classList.remove('active');
-            }
-        }
-        
-        // Calculate how many LEDs to light in center column (full value)
-        const centerColumn = 1; // Middle column index
-        const numCenterLeds = Math.floor((value / 100) * ledsPerColumn);
-        
-        // Side columns get fewer LEDs (70% of center height) to create diamond shape
-        const sideColumns = [0, 2]; // Left and right column indices
-        const numSideLeds = Math.floor(numCenterLeds * 0.7);
-        
-        // Light center column
-        const middleIndex = Math.floor(ledsPerColumn / 2);
-        for (let i = 0; i < numCenterLeds; i++) {
-            // Light LEDs symmetrically from middle
-            if (i % 2 === 0) {
-                // Even numbers go up from middle
-                const ledIndex = middleIndex - Math.floor(i/2);
-                if (ledIndex >= 0) {
-                    ledElements[centerColumn][ledIndex].classList.add('active');
-                }
-            } else {
-                // Odd numbers go down from middle
-                const ledIndex = middleIndex + Math.ceil(i/2);
-                if (ledIndex < ledsPerColumn) {
-                    ledElements[centerColumn][ledIndex].classList.add('active');
-                }
-            }
-        }
-        
-        // Light side columns (shorter)
-        for (const colIndex of sideColumns) {
-            for (let i = 0; i < numSideLeds; i++) {
-                // Light LEDs symmetrically from middle
-                if (i % 2 === 0) {
-                    // Even numbers go up from middle
-                    const ledIndex = middleIndex - Math.floor(i/2);
-                    if (ledIndex >= 0) {
-                        ledElements[colIndex][ledIndex].classList.add('active');
-                    }
-                } else {
-                    // Odd numbers go down from middle
-                    const ledIndex = middleIndex + Math.ceil(i/2);
-                    if (ledIndex < ledsPerColumn) {
-                        ledElements[colIndex][ledIndex].classList.add('active');
-                    }
-                }
-            }
-        }
-    }
-    
-    // Function to generate random voice modulator values
-    function randomVoiceAnimation() {
-        // Cancel any existing animation
-        if (voiceAnimationId) {
-            clearInterval(voiceAnimationId);
-        }
-        
-        voiceAnimationId = setInterval(() => {
-            // Create multiple wave patterns for more dynamic movement
-            const time = Date.now() / 50; // Doubled speed
-            const baseValue1 = Math.sin(time) * 0.5 + 0.5; // Primary wave
-            const baseValue2 = Math.sin(time * 2.5) * 0.4 + 0.5; // Faster secondary wave
-            const baseValue3 = Math.sin(time * 1.2) * 0.3 + 0.5; // Tertiary wave
-            
-            // Combine waves with different phases and amplitudes
-            const combinedValue = (baseValue1 * 0.4 + baseValue2 * 0.4 + baseValue3 * 0.2);
-            
-            // Add more dynamic randomness
-            const randomFactor = 0.4; // Increased randomness
-            const randomness = (Math.random() * 2 - 1) * randomFactor;
-            
-            // Add more frequent spikes for more dramatic effect
-            const spikeChance = 0.1; // 10% chance of a spike
-            const spikeValue = Math.random() < spikeChance ? 2.0 : 1;
-            
-            // Scale to 0-100 range with spikes and more sensitivity
-            const value = Math.max(0, Math.min(100, (combinedValue + randomness) * 120 * spikeValue));
-            
-            // Animate with a single value (the function will create diamond pattern)
-            animateVoice(value);
-        }, 20); // Reduced interval for even smoother animation
-    }
-    
-    // Function to stop voice animation
-    function stopVoiceAnimation() {
-        if (voiceAnimationId) {
-            clearInterval(voiceAnimationId);
-            voiceAnimationId = null;
-        }
-        
-        // Turn off all LEDs
-        for (let col = 0; col < ledElements.length; col++) {
-            for (let row = 0; row < ledElements[col].length; row++) {
-                ledElements[col][row].classList.remove('active');
-            }
-        }
-    }
+    // Initialize voice modulator
+    window.voiceModulator.initializeLEDs();
     
     // Function to set the display mode
     function activateMode(mode) {
@@ -206,8 +240,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pursuit').addEventListener('click', () => activateMode('pursuit'));
     
     // Event listeners for voice modulator buttons
-    document.getElementById('btn-voice-random').addEventListener('click', randomVoiceAnimation);
-    document.getElementById('btn-voice-off').addEventListener('click', stopVoiceAnimation);
+    document.getElementById('btn-voice-random').addEventListener('click', () => window.voiceModulator.startRandomAnimation());
+    document.getElementById('btn-voice-off').addEventListener('click', () => window.voiceModulator.stopAnimation());
     
     // Event listeners for all buttons
     document.getElementById('air').addEventListener('click', () => toggleButton('air'));
@@ -227,9 +261,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to set voice modulator values programmatically
     window.setVoiceValues = function(value) {
         // Stop any automatic animation
-        stopVoiceAnimation();
+        window.voiceModulator.stopAnimation();
         // Set the values directly
-        animateVoice(value);
+        window.voiceModulator.animateVoice(value);
     };
     
     // Function to set a button state programmatically
@@ -269,10 +303,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const dataArray = new Uint8Array(bufferLength);
         
         // Stop any current animation
-        stopVoiceAnimation();
+        window.voiceModulator.stopAnimation();
         
         // Create new animation based on audio
-        voiceAnimationId = setInterval(() => {
+        window.voiceModulator.animationId = setInterval(() => {
             analyser.getByteFrequencyData(dataArray);
             
             // Get weighted average intensity across frequency spectrum
@@ -298,7 +332,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const value = Math.max(0, Math.min(100, average * spikeValue));
             
             // Animate with a single value (our function creates the diamond pattern)
-            animateVoice(value);
+            window.voiceModulator.animateVoice(value);
         }, 20); // Reduced interval for smoother animation
         
         console.log('Audio connected successfully');
@@ -328,7 +362,7 @@ document.addEventListener('DOMContentLoaded', function() {
             statusText.textContent = "Listening...";
             
             // Activate the voice modulator animation
-            randomVoiceAnimation();
+            window.voiceModulator.startRandomAnimation();
             
             // Switch to PURSUIT mode to indicate KITT is listening
             activateMode('pursuit');
@@ -381,7 +415,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Return to normal state
         activateMode('auto-cruise');
-        randomVoiceAnimation();
+        window.voiceModulator.stopAnimation();
     }
     
     // ElevenLabs API configuration
@@ -422,22 +456,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Animate voice modulator during playback
             const duration = audioData.duration * 1000; // Convert to milliseconds
-            const startTime = Date.now();
-            
-            const animatePlayback = () => {
-                const elapsed = Date.now() - startTime;
-                if (elapsed < duration) {
-                    // Create a wave pattern based on elapsed time
-                    const progress = elapsed / duration;
-                    const value = Math.sin(progress * Math.PI * 8) * 50 + 50;
-                    animateVoice(value);
-                    requestAnimationFrame(animatePlayback);
-                } else {
-                    stopVoiceAnimation();
-                }
-            };
-            
-            animatePlayback();
+            window.voiceModulator.startPlaybackAnimation(duration);
             
             return new Promise((resolve, reject) => {
                 audioSource.onended = resolve;
@@ -640,7 +659,7 @@ Now then — how may I assist you?`;
                     'Accept': 'audio/mpeg'
                 },
                 body: JSON.stringify({
-                    text: longText,
+                    text: shortText,
                     model_id: config.modelId || 'eleven_monolingual_v1',
                     voice_settings: config.additionalParams
                 })
@@ -676,9 +695,9 @@ Now then — how may I assist you?`;
         
         // Update voice modulator animation
         if (isSpeaking) {
-            randomVoiceAnimation();
+            window.voiceModulator.startRandomAnimation();
         } else {
-            stopVoiceAnimation();
+            window.voiceModulator.stopAnimation();
         }
     }
 
@@ -734,7 +753,7 @@ Now then — how may I assist you?`;
             document.getElementById('mic-button').disabled = false;
             document.getElementById('end-conversation').disabled = true;
             activateMode('auto-cruise');
-            stopVoiceAnimation();
+            window.voiceModulator.stopAnimation();
         }
     }
 
