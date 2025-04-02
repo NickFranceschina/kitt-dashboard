@@ -624,6 +624,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!config.apiKey || !config.voiceId) {
                 throw new Error('Missing API key or Voice ID in configuration');
             }
+            const longText = `Hello. You've reached the Knight Industries Two Thousand — KITT, if you prefer brevity. I am fully operational and standing by.
+
+If this is Michael, I must remind you that our last mission concluded with precisely 43% more tire wear than projected — perhaps we can drive a bit more conservatively this time?
+
+If you are not Michael… well, do try to keep up.
+
+Now then — how may I assist you?`;
+            const shortText = "Hello, I am KITT. How can I help you?";
 
             // Get the audio stream directly
             const response = await callElevenLabsAPI('/text-to-speech/' + config.voiceId + '/stream', {
@@ -632,7 +640,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Accept': 'audio/mpeg'
                 },
                 body: JSON.stringify({
-                    text: "Hello, I am KITT. How can I help you?",
+                    text: longText,
                     model_id: config.modelId || 'eleven_monolingual_v1',
                     voice_settings: config.additionalParams
                 })
