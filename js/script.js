@@ -2,14 +2,67 @@
 function toggleConfig() {
     const configBody = document.getElementById('config-body');
     const configToggle = document.getElementById('config-toggle');
+    const toggleIcon = configToggle.querySelector('.toggle-icon');
+    const apiConfig = document.getElementById('api-config');
+    const toggleButton = document.getElementById('config-toggle-button');
+    
     if (configBody && configToggle) {
+        // Toggle the expanded state
         configBody.classList.toggle('expanded');
-        configToggle.textContent = configBody.classList.contains('expanded') ? '-' : '+';
+        toggleIcon.textContent = configBody.classList.contains('expanded') ? '-' : '+';
+        
+        // Show/hide the panel
+        if (configBody.classList.contains('expanded')) {
+            apiConfig.classList.add('visible');
+            toggleButton.classList.add('active');
+        } else {
+            apiConfig.classList.remove('visible');
+            toggleButton.classList.remove('active');
+        }
     }
+}
+
+// Function to handle clicks outside the panel
+function handleOutsideClick(event) {
+    const apiConfig = document.getElementById('api-config');
+    const configToggleButton = document.getElementById('config-toggle-button');
+    
+    // Check if click is outside the panel and toggle button
+    if (!apiConfig.contains(event.target) && !configToggleButton.contains(event.target)) {
+        // Only close if not pinned
+        if (!apiConfig.classList.contains('pinned')) {
+            const configBody = document.getElementById('config-body');
+            if (configBody.classList.contains('expanded')) {
+                toggleConfig();
+            }
+        }
+    }
+}
+
+// Function to toggle pin state
+function togglePin(event) {
+    event.stopPropagation(); // Prevent panel toggle when clicking pin
+    const apiConfig = document.getElementById('api-config');
+    const pinIcon = document.getElementById('pin-icon');
+    
+    apiConfig.classList.toggle('pinned');
+    pinIcon.classList.toggle('pinned');
 }
 
 // Wait for DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize panel state
+    const apiConfig = document.getElementById('api-config');
+    const toggleIcon = document.querySelector('.toggle-icon');
+    
+    // Ensure panel starts hidden
+    apiConfig.classList.remove('visible');
+    document.getElementById('config-body').classList.remove('expanded');
+    toggleIcon.textContent = '+';
+    
+    // Add click event listener for clicks outside the panel
+    document.addEventListener('click', handleOutsideClick);
+    
     // Generate LED columns for voice modulator
     const voiceModulator = document.getElementById('voice-modulator');
     const numColumns = 3; // Only 3 columns like the original
@@ -893,4 +946,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add event listeners for conversation controls
     document.getElementById('start-conversation').addEventListener('click', startConversation);
     document.getElementById('end-conversation').addEventListener('click', endConversation);
+
+    // Add pin click handler
+    const pinIcon = document.getElementById('pin-icon');
+    if (pinIcon) {
+        pinIcon.addEventListener('click', togglePin);
+    }
+
+    // Add config toggle button handler
+    const configToggleButton = document.getElementById('config-toggle-button');
+    if (configToggleButton) {
+        configToggleButton.addEventListener('click', toggleConfig);
+    }
 });

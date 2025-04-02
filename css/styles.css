@@ -321,24 +321,35 @@ body {
 /* API Configuration Styles */
 .api-config {
     position: fixed;
-    top: 20px;
-    right: 20px;
-    background: rgba(0, 0, 0, 0.9);
-    border: 1px solid #333;
-    border-radius: 5px;
-    color: #fff;
+    top: 0;
+    right: -400px; /* Start hidden */
     width: 400px;
+    height: 100vh;
+    background-color: #1a1a1a;
+    border-left: 2px solid #d4a017;
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
+    transition: right 0.3s ease;
     z-index: 1000;
+    display: flex;
+    flex-direction: column;
+}
+
+.api-config.visible {
+    right: 0;
+}
+
+.api-config.pinned {
+    right: 0;
 }
 
 .config-header {
-    padding: 10px;
-    background: #333;
-    border-radius: 5px 5px 0 0;
-    cursor: pointer;
+    background-color: #333;
+    padding: 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-bottom: 1px solid #d4a017;
+    cursor: pointer;
 }
 
 .config-header h3 {
@@ -348,12 +359,28 @@ body {
 
 .config-toggle {
     color: #d4a017;
-    font-weight: bold;
-    font-size: 18px;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.config-toggle .pin-icon {
+    font-size: 16px;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.config-toggle .pin-icon.pinned {
+    opacity: 1;
+    color: #ffc125;
 }
 
 .config-body {
-    padding: 15px;
+    flex-grow: 1;
+    padding: 20px;
+    overflow-y: auto;
     display: none;
 }
 
@@ -449,4 +476,41 @@ body {
     color: #888;
     font-style: italic;
     margin-bottom: 10px;
+}
+
+/* Configuration Toggle Button */
+.config-toggle-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #333;
+    border: 2px solid #d4a017;
+    color: #d4a017;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s ease;
+    z-index: 999;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.config-toggle-button:hover {
+    background-color: #d4a017;
+    color: black;
+    transform: scale(1.1);
+    box-shadow: 0 0 15px rgba(212, 160, 23, 0.5);
+}
+
+.config-toggle-button .config-icon {
+    font-size: 20px;
+}
+
+.config-toggle-button.active {
+    background-color: #d4a017;
+    color: black;
+    box-shadow: 0 0 15px rgba(212, 160, 23, 0.5);
 }
