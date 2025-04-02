@@ -885,8 +885,10 @@ function toggleConfig() {
     const toggleButton = document.getElementById('config-toggle-button');
     
     if (apiConfig && toggleButton) {
-        // Show/hide the panel
-        apiConfig.classList.toggle('visible');
-        toggleButton.classList.toggle('active');
+        // Only toggle if not pinned
+        if (!apiConfig.classList.contains('pinned')) {
+            apiConfig.classList.toggle('visible');
+            toggleButton.classList.toggle('active');
+        }
     }
 }
