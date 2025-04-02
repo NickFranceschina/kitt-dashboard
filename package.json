@@ -5,7 +5,8 @@
     "main": "index.html",
     "scripts": {
       "start": "http-server -p 3100 -c-1",
-      "dev": "http-server -p 3200 -c-1 --cors"
+      "dev": "http-server -p 3200 -c-1 --cors",
+      "https": "http-server -p 3100 -c-1 -S -C certs/localhost.pem -K certs/localhost-key.pem --cors --proxy http://localhost:3100?"
     },
     "keywords": [
       "kitt",
