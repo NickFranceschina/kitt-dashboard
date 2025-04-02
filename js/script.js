@@ -162,9 +162,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Event listeners for mode buttons
-    document.getElementById('btn-auto').addEventListener('click', () => activateMode('auto-cruise'));
-    document.getElementById('btn-normal').addEventListener('click', () => activateMode('normal-cruise'));
-    document.getElementById('btn-pursuit').addEventListener('click', () => activateMode('pursuit'));
+    document.getElementById('auto-cruise').addEventListener('click', () => activateMode('auto-cruise'));
+    document.getElementById('normal-cruise').addEventListener('click', () => activateMode('normal-cruise'));
+    document.getElementById('pursuit').addEventListener('click', () => activateMode('pursuit'));
     
     // Event listeners for voice modulator buttons
     document.getElementById('btn-voice-random').addEventListener('click', randomVoiceAnimation);
@@ -179,18 +179,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('s2').addEventListener('click', () => toggleButton('s2'));
     document.getElementById('p3').addEventListener('click', () => toggleButton('p3'));
     document.getElementById('p4').addEventListener('click', () => toggleButton('p4'));
-    
-    // Toggle all buttons at once
-    document.getElementById('btn-toggle-all').addEventListener('click', () => {
-        toggleButton('air');
-        toggleButton('oil');
-        toggleButton('p1');
-        toggleButton('p2');
-        toggleButton('s1');
-        toggleButton('s2');
-        toggleButton('p3');
-        toggleButton('p4');
-    });
     
     // Initialize with auto-cruise mode and start random voice animation
     activateMode('auto-cruise');
