@@ -553,7 +553,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentMode = 'tts'; // 'tts' or 'ai'
 
     // Function to switch between modes
-    function switchMode(mode) {
+    async function switchMode(mode) {
         currentMode = mode;
         const ttsButton = document.getElementById('btn-tts-mode');
         const aiButton = document.getElementById('btn-ai-mode');
@@ -562,25 +562,42 @@ document.addEventListener('DOMContentLoaded', function() {
         const endButton = document.getElementById('end-conversation');
         const statusText = document.getElementById('status-text');
         
+        // Check for valid configuration
+        const config = await getElevenLabsConfig();
+        const hasValidConfig = config && config.apiKey && config.voiceId;
+        
+        if (!hasValidConfig) {
+            // Disable all buttons and show configuration message
+            micButton.disabled = true;
+            startButton.disabled = true;
+            endButton.disabled = true;
+            statusText.textContent = "Please configure ElevenLabs API settings in the configuration panel";
+            statusText.classList.add('error');
+            log('Missing ElevenLabs configuration', 'error');
+        } else {
+            // Enable buttons and remove error state
+            statusText.classList.remove('error');
+        }
+        
         if (mode === 'tts') {
             ttsButton.classList.add('active');
             aiButton.classList.remove('active');
             // Show mic button, hide conversation buttons
-            micButton.style.display = 'block';
+            micButton.style.display = hasValidConfig ? 'block' : 'none';
             startButton.style.display = 'none';
             endButton.style.display = 'none';
             // Set TTS mode status text
-            statusText.textContent = "Click the microphone to speak to KITT";
+            statusText.textContent = hasValidConfig ? "Click the microphone to speak to KITT" : "Please configure ElevenLabs API settings in the configuration panel";
             log('Switched to Text-to-Speech mode', 'system');
         } else {
             aiButton.classList.add('active');
             ttsButton.classList.remove('active');
             // Hide mic button, show conversation buttons
             micButton.style.display = 'none';
-            startButton.style.display = 'block';
-            endButton.style.display = 'block';
+            startButton.style.display = hasValidConfig ? 'block' : 'none';
+            endButton.style.display = hasValidConfig ? 'block' : 'none';
             // Set AI mode status text
-            statusText.textContent = "Click 'Start Conversation' to begin";
+            statusText.textContent = hasValidConfig ? "Click 'Start Conversation' to begin" : "Please configure ElevenLabs API settings in the configuration panel";
             log('Switched to AI Conversation mode', 'system');
         }
     }
@@ -776,7 +793,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to get ElevenLabs configuration
     async function getElevenLabsConfig() {
         try {
-            const configText = document.getElementById('config-json').value;
+            const configText = document.getElementById('config-json').value.trim();
+            
+            // If config is empty, return null
+            if (!configText) {
+                return null;
+            }
+            
             const config = JSON.parse(configText);
             
             // Validate the configuration structure
@@ -798,15 +821,32 @@ document.addEventListener('DOMContentLoaded', function() {
             const micButton = document.getElementById('mic-button');
             const startButton = document.getElementById('start-conversation');
             const endButton = document.getElementById('end-conversation');
+            const statusText = document.getElementById('status-text');
+            
+            // Check for valid configuration
+            const config = await getElevenLabsConfig();
+            const hasValidConfig = config && config.apiKey && config.voiceId;
+            
+            if (!hasValidConfig) {
+                // Disable mic button and show configuration message
+                micButton.disabled = true;
+                statusText.textContent = "Please configure ElevenLabs API settings in the configuration panel";
+                statusText.classList.add('error');
+                log('Missing ElevenLabs configuration', 'error');
+            } else {
+                // Enable mic button and show normal message
+                micButton.disabled = false;
+                statusText.classList.remove('error');
+            }
             
             if (currentMode === 'tts') {
-                micButton.style.display = 'block';
+                micButton.style.display = hasValidConfig ? 'block' : 'none';
                 startButton.style.display = 'none';
                 endButton.style.display = 'none';
             } else {
                 micButton.style.display = 'none';
-                startButton.style.display = 'block';
-                endButton.style.display = 'block';
+                startButton.style.display = hasValidConfig ? 'block' : 'none';
+                endButton.style.display = hasValidConfig ? 'block' : 'none';
             }
         } catch (error) {
             console.error('Error initializing:', error);
@@ -876,6 +916,50 @@ document.addEventListener('DOMContentLoaded', function() {
     const configToggleButton = document.getElementById('config-toggle-button');
     if (configToggleButton) {
         configToggleButton.addEventListener('click', toggleConfig);
+    }
+
+    // Add configuration textarea change handler
+    const configTextarea = document.getElementById('config-json');
+    if (configTextarea) {
+        configTextarea.addEventListener('input', async function() {
+            const config = await getElevenLabsConfig();
+            const hasValidConfig = config && config.apiKey && config.voiceId;
+            const micButton = document.getElementById('mic-button');
+            const startButton = document.getElementById('start-conversation');
+            const endButton = document.getElementById('end-conversation');
+            const statusText = document.getElementById('status-text');
+            
+            if (hasValidConfig) {
+                // Enable buttons and remove error state
+                micButton.disabled = false;
+                startButton.disabled = false;
+                endButton.disabled = false;
+                statusText.classList.remove('error');
+                
+                // Update button visibility based on current mode
+                if (currentMode === 'tts') {
+                    micButton.style.display = 'block';
+                    startButton.style.display = 'none';
+                    endButton.style.display = 'none';
+                    statusText.textContent = "Click the microphone to speak to KITT";
+                } else {
+                    micButton.style.display = 'none';
+                    startButton.style.display = 'block';
+                    endButton.style.display = 'block';
+                    statusText.textContent = "Click 'Start Conversation' to begin";
+                }
+                
+                log('Valid configuration detected', 'system');
+            } else {
+                // Disable buttons and show error state
+                micButton.disabled = true;
+                startButton.disabled = true;
+                endButton.disabled = true;
+                statusText.textContent = "Please configure ElevenLabs API settings in the configuration panel";
+                statusText.classList.add('error');
+                log('Invalid or incomplete configuration', 'error');
+            }
+        });
     }
 });
 
