@@ -340,7 +340,7 @@ document.addEventListener('DOMContentLoaded', function() {
             activateMode('normal-cruise');
             
             // Get ElevenLabs configuration
-            const config = getElevenLabsConfig();
+            const config = await getElevenLabsConfig();
             
             // Call ElevenLabs API (this is a placeholder - implement the actual API call)
             statusText.textContent = "Processing your request...";
@@ -392,63 +392,163 @@ document.addEventListener('DOMContentLoaded', function() {
         configHeader.addEventListener('click', toggleConfig);
     }
     
-    // Save configuration
-    saveConfigButton.addEventListener('click', function() {
-        const config = {
-            apiKey: document.getElementById('api-key').value,
-            voiceId: document.getElementById('voice-id').value,
-            modelId: document.getElementById('model-id').value,
-            agentId: document.getElementById('agent-id').value,
-            additionalParams: document.getElementById('additional-params').value
-        };
-        
-        // Save to local storage (encrypted in a real application)
-        localStorage.setItem('elevenLabsConfig', JSON.stringify(config));
-        
-        // Provide feedback
-        alert('Configuration saved!');
-    });
-    
     // Function to get ElevenLabs configuration
-    function getElevenLabsConfig() {
-        const storedConfig = localStorage.getItem('elevenLabsConfig');
-        if (storedConfig) {
-            const config = JSON.parse(storedConfig);
-            
-            // Parse additional parameters if present
-            if (config.additionalParams) {
-                try {
-                    config.additionalParams = JSON.parse(config.additionalParams);
-                } catch (error) {
-                    console.error('Error parsing additional parameters:', error);
-                }
+    async function getElevenLabsConfig() {
+        try {
+            const response = await fetch('/config.json');
+            if (!response.ok) {
+                throw new Error('Configuration file not found');
             }
-            
-            return config;
+            const config = await response.json();
+            return config.elevenlabs;
+        } catch (error) {
+            console.error('Error loading configuration:', error);
+            // Fall back to form values if config file is not available
+            return {
+                apiKey: document.getElementById('api-key').value,
+                voiceId: document.getElementById('voice-id').value,
+                modelId: document.getElementById('model-id').value,
+                agentId: document.getElementById('agent-id').value,
+                additionalParams: document.getElementById('additional-params').value
+            };
         }
-        
-        return {
-            apiKey: document.getElementById('api-key').value,
-            voiceId: document.getElementById('voice-id').value,
-            modelId: document.getElementById('model-id').value,
-            agentId: document.getElementById('agent-id').value,
-            additionalParams: document.getElementById('additional-params').value
-        };
     }
-    
-    // Load saved configuration on page load
-    window.addEventListener('load', function() {
-        const storedConfig = localStorage.getItem('elevenLabsConfig');
-        if (storedConfig) {
-            const config = JSON.parse(storedConfig);
+
+    // Function to save configuration
+    async function saveConfig() {
+        const config = {
+            elevenlabs: {
+                apiKey: document.getElementById('api-key').value,
+                voiceId: document.getElementById('voice-id').value,
+                modelId: document.getElementById('model-id').value,
+                agentId: document.getElementById('agent-id').value,
+                additionalParams: document.getElementById('additional-params').value
+            },
+            speech: {
+                language: 'en-US',
+                continuous: false,
+                interimResults: false
+            }
+        };
+        
+        // In a production environment, you would typically send this to a server
+        // For local development, you can show the configuration to copy manually
+        console.log('Configuration to save to config.json:', JSON.stringify(config, null, 2));
+        alert('Please copy the configuration from the console and save it to config.json');
+    }
+
+    // Update the save button click handler
+    saveConfigButton.addEventListener('click', saveConfig);
+
+    // Load configuration on page load
+    window.addEventListener('load', async function() {
+        try {
+            const config = await getElevenLabsConfig();
             document.getElementById('api-key').value = config.apiKey || '';
             document.getElementById('voice-id').value = config.voiceId || '';
             document.getElementById('model-id').value = config.modelId || 'eleven_monolingual_v1';
             document.getElementById('agent-id').value = config.agentId || '';
             document.getElementById('additional-params').value = 
-                typeof config.additionalParams === 'string' 
-                    ? config.additionalParams 
-                    : JSON.stringify(config.additionalParams || {}, null, 2);
+                typeof config.additionalParams === 'object' 
+                    ? JSON.stringify(config.additionalParams, null, 2)
+                    : config.additionalParams || '';
+        } catch (error) {
+            console.error('Error loading configuration:', error);
         }
     });
+
+    // Add logging functionality
+    function log(message, type = 'info') {
+        const logArea = document.getElementById('system-log');
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+        logArea.value += logEntry;
+        logArea.scrollTop = logArea.scrollHeight;
+    }
+
+    // Add event listeners for log controls
+    document.getElementById('clear-log').addEventListener('click', () => {
+        document.getElementById('system-log').value = '';
+        log('Log cleared', 'system');
+    });
+
+    document.getElementById('copy-log').addEventListener('click', () => {
+        const logArea = document.getElementById('system-log');
+        logArea.select();
+        document.execCommand('copy');
+        log('Log copied to clipboard', 'system');
+    });
+
+    // Update speech recognition event handlers
+    recognition.onstart = () => {
+        log('Speech recognition started', 'system');
+        micButton.classList.add('listening');
+        statusText.textContent = 'Listening...';
+    };
+
+    recognition.onend = () => {
+        log('Speech recognition ended', 'system');
+        micButton.classList.remove('listening');
+        statusText.textContent = 'Click the microphone to speak to KITT';
+    };
+
+    recognition.onresult = (event) => {
+        const text = event.results[0][0].transcript;
+        log(`Speech recognized: "${text}"`, 'speech');
+        processSpeechInput(text);
+    };
+
+    recognition.onerror = (event) => {
+        log(`Speech recognition error: ${event.error}`, 'error');
+        micButton.classList.remove('listening');
+        statusText.textContent = 'Error occurred. Click to try again.';
+    };
+
+    // Update processSpeechInput function
+    async function processSpeechInput(text) {
+        try {
+            log('Processing speech input...', 'system');
+            const config = await getElevenLabsConfig();
+            
+            if (!config.apiKey || !config.voiceId) {
+                log('Missing API key or voice ID in configuration', 'error');
+                return;
+            }
+
+            log('Sending request to ElevenLabs API...', 'api');
+            const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${config.voiceId}`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'audio/mpeg',
+                    'Content-Type': 'application/json',
+                    'xi-api-key': config.apiKey
+                },
+                body: JSON.stringify({
+                    text: text,
+                    model_id: config.modelId || 'eleven_monolingual_v1',
+                    ...config.additionalParams
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.text();
+                log(`ElevenLabs API error: ${error}`, 'error');
+                return;
+            }
+
+            const audioBlob = await response.blob();
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+            
+            log('Audio received, playing response...', 'system');
+            audio.play();
+            
+            audio.onended = () => {
+                URL.revokeObjectURL(audioUrl);
+                log('Audio playback completed', 'system');
+            };
+        } catch (error) {
+            log(`Error processing speech: ${error.message}`, 'error');
+        }
+    }
 });

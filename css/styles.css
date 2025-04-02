@@ -252,24 +252,25 @@ button:hover {
 
 /* API Configuration Styles */
 .api-config {
-    width: 600px;
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #222;
-    border-radius: 10px;
-    border: 2px solid #444;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid #333;
+    border-radius: 5px;
+    color: #fff;
+    width: 400px;
+    z-index: 1000;
 }
 
 .config-header {
+    padding: 10px;
+    background: #333;
+    border-radius: 5px 5px 0 0;
+    cursor: pointer;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
-    cursor: pointer;
-    padding: 10px;
-    background-color: #333;
-    border-radius: 5px;
-    border: 2px solid #555;
 }
 
 .config-header h3 {
@@ -284,54 +285,57 @@ button:hover {
 }
 
 .config-body {
-    overflow: hidden;
-    transition: max-height 0.5s ease;
-    max-height: 0;
+    padding: 15px;
+    display: none;
 }
 
 .config-body.expanded {
-    max-height: 500px;
-    padding: 10px;
-    border: 1px solid #444;
-    border-radius: 5px;
-    margin-top: 5px;
-}
-
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-group label {
     display: block;
-    margin-bottom: 5px;
-    color: #ccc;
 }
 
-.form-group input, .form-group textarea {
-    width: 100%;
-    padding: 8px;
-    background-color: #333;
-    border: 1px solid #555;
-    border-radius: 4px;
-    color: white;
-    font-family: monospace;
+.config-section {
+    margin-bottom: 20px;
 }
 
-.form-group textarea {
-    height: 100px;
-    resize: vertical;
+.logging-section {
+    border-top: 1px solid #333;
+    padding-top: 15px;
 }
 
-.save-button {
-    background-color: #d4a017;
-    color: black;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 4px;
+.logging-section h4 {
+    margin: 0 0 10px 0;
+    color: #00ff00;
+}
+
+.log-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.log-button {
+    background: #333;
+    color: #00ff00;
+    border: 1px solid #00ff00;
+    padding: 5px 10px;
+    border-radius: 3px;
     cursor: pointer;
-    font-weight: bold;
+    font-size: 12px;
 }
 
-.save-button:hover {
-    background-color: #ffc125;
+.log-button:hover {
+    background: #00ff00;
+    color: #000;
+}
+
+#system-log {
+    width: 100%;
+    height: 200px;
+    background: #000;
+    color: #00ff00;
+    border: 1px solid #333;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 12px;
+    resize: vertical;
 }

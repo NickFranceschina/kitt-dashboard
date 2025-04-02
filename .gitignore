@@ -36,6 +36,12 @@ Thumbs.db
 # Local storage files (could contain sensitive API keys)
 localStorage/
 
+# Configuration files
+config.json
+config.local.json
+config.*.json
+!config.template.json
+
 # Temporary files
 *.tmp
 *.swp
