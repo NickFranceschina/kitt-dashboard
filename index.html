@@ -37,24 +37,10 @@
     </div>
     
     <!-- Configuration Toggle Button -->
-    <button id="config-toggle-button" class="config-toggle-button" title="ElevenLabs Configuration">
-        <span class="config-icon">⚙️</span>
-    </button>
-    
-    <!-- Voice Recognition Controls -->
-    <div class="voice-controls">
-        <button id="mic-button" class="mic-button">
-            <!-- Text label added by CSS -->
-        </button>
-        <div id="status-text" class="status-text">Click the microphone to speak to KITT</div>
-        <div class="conversation-controls">
-            <button id="start-conversation" class="conversation-button">Start Conversation</button>
-            <button id="end-conversation" class="conversation-button" disabled>End Conversation</button>
-        </div>
-    </div>
-    
-    <!-- ElevenLabs API Configuration -->
     <div class="api-config" id="api-config">
+        <button id="config-toggle-button" class="config-toggle-button" title="ElevenLabs Configuration">
+            <span class="config-icon">⚙️</span>
+        </button>
         <div class="config-header" id="config-header">
             <h3>ElevenLabs Configuration</h3>
             <div class="config-toggle" id="config-toggle">
@@ -110,6 +96,18 @@
                 <button id="copy-conversation" class="log-button">Copy Conversation</button>
             </div>
             <div id="conversation-history" class="conversation-history" placeholder="Your conversation with KITT will appear here..."></div>
+        </div>
+    </div>
+
+    <!-- Voice Recognition Controls -->
+    <div class="voice-controls">
+        <button id="mic-button" class="mic-button">
+            <!-- Text label added by CSS -->
+        </button>
+        <div id="status-text" class="status-text">Click the microphone to speak to KITT</div>
+        <div class="conversation-controls">
+            <button id="start-conversation" class="conversation-button">Start Conversation</button>
+            <button id="end-conversation" class="conversation-button" disabled>End Conversation</button>
         </div>
     </div>
 

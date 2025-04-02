@@ -480,14 +480,15 @@ body {
 
 /* Configuration Toggle Button */
 .config-toggle-button {
-    position: fixed;
+    position: absolute;
     top: 20px;
-    right: 20px;
+    left: -40px;
     width: 40px;
     height: 40px;
-    border-radius: 50%;
+    border-radius: 50% 0 0 50%;
     background-color: #333;
     border: 2px solid #d4a017;
+    border-right: none;
     color: #d4a017;
     cursor: pointer;
     display: flex;
@@ -495,14 +496,14 @@ body {
     align-items: center;
     transition: all 0.3s ease;
     z-index: 999;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    box-shadow: -5px 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .config-toggle-button:hover {
     background-color: #d4a017;
     color: black;
     transform: scale(1.1);
-    box-shadow: 0 0 15px rgba(212, 160, 23, 0.5);
+    box-shadow: -5px 0 15px rgba(212, 160, 23, 0.5);
 }
 
 .config-toggle-button .config-icon {
@@ -512,5 +513,5 @@ body {
 .config-toggle-button.active {
     background-color: #d4a017;
     color: black;
-    box-shadow: 0 0 15px rgba(212, 160, 23, 0.5);
+    box-shadow: -5px 0 15px rgba(212, 160, 23, 0.5);
 }
