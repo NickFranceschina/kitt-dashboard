@@ -475,13 +475,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error('Missing API key or Voice ID in configuration');
             }
 
-            // Generate a contextual response based on the input
-            const response = generateKittResponse(text);
+            // Get conversation history
+            const history = document.getElementById('conversation-history');
+            const messages = Array.from(history.children).map(div => ({
+                role: div.classList.contains('user-message') ? 'user' : 'assistant',
+                content: div.textContent
+            }));
+
+            // First, get the AI response
+            const response = await callElevenLabsAPI('/text-to-speech/' + config.voiceId, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'audio/mpeg'
+                },
+                body: JSON.stringify({
+                    text: text,
+                    model_id: config.modelId || 'eleven_monolingual_v1',
+                    voice_settings: config.additionalParams
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to generate speech');
+            }
+
+            const audioBuffer = await response.arrayBuffer();
+            await playAudio(audioBuffer);
             
-            // Convert the response to speech
-            await textToSpeech(response);
-            
-            return response;
+            return text; // For now, just echo back the text
         } catch (error) {
             console.error('Error in AI response:', error);
             log('Error getting AI response: ' + error.message, 'error');
@@ -497,37 +518,183 @@ document.addEventListener('DOMContentLoaded', function() {
         currentMode = mode;
         const ttsButton = document.getElementById('btn-tts-mode');
         const aiButton = document.getElementById('btn-ai-mode');
+        const micButton = document.getElementById('mic-button');
+        const startButton = document.getElementById('start-conversation');
+        const endButton = document.getElementById('end-conversation');
+        const statusText = document.getElementById('status-text');
         
         if (mode === 'tts') {
             ttsButton.classList.add('active');
             aiButton.classList.remove('active');
+            // Show mic button, hide conversation buttons
+            micButton.style.display = 'block';
+            startButton.style.display = 'none';
+            endButton.style.display = 'none';
+            // Set TTS mode status text
+            statusText.textContent = "Click the microphone to speak to KITT";
             log('Switched to Text-to-Speech mode', 'system');
         } else {
             aiButton.classList.add('active');
             ttsButton.classList.remove('active');
+            // Hide mic button, show conversation buttons
+            micButton.style.display = 'none';
+            startButton.style.display = 'block';
+            endButton.style.display = 'block';
+            // Set AI mode status text
+            statusText.textContent = "Click 'Start Conversation' to begin";
             log('Switched to AI Conversation mode', 'system');
         }
     }
 
-    // Update the processSpeechInput function to handle both modes
+    // Conversation state
+    let conversation = null;
+    let isStreaming = false;
+
+    // Function to request microphone permission
+    async function requestMicrophonePermission() {
+        try {
+            await navigator.mediaDevices.getUserMedia({ audio: true });
+            return true;
+        } catch (error) {
+            console.error('Microphone permission denied:', error);
+            return false;
+        }
+    }
+
+    // Function to get signed URL for streaming
+    async function getSignedUrl() {
+        try {
+            const config = await getElevenLabsConfig();
+            if (!config.apiKey || !config.voiceId) {
+                throw new Error('Missing API key or Voice ID in configuration');
+            }
+
+            // Get the audio stream directly
+            const response = await callElevenLabsAPI('/text-to-speech/' + config.voiceId + '/stream', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'audio/mpeg'
+                },
+                body: JSON.stringify({
+                    text: "Hello, I am KITT. How can I help you?",
+                    model_id: config.modelId || 'eleven_monolingual_v1',
+                    voice_settings: config.additionalParams
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to get audio stream');
+            }
+
+            // Create a blob from the response
+            const blob = await response.blob();
+            // Create an object URL from the blob
+            return URL.createObjectURL(blob);
+        } catch (error) {
+            console.error('Error getting audio stream:', error);
+            throw error;
+        }
+    }
+
+    // Function to update connection status
+    function updateStatus(isConnected) {
+        const statusText = document.getElementById('status-text');
+        statusText.textContent = isConnected ? 'Connected to KITT' : 'Disconnected from KITT';
+        statusText.classList.toggle('connected', isConnected);
+    }
+
+    // Function to update speaking status
+    function updateSpeakingStatus(mode) {
+        const statusText = document.getElementById('status-text');
+        const isSpeaking = mode.mode === 'speaking';
+        statusText.textContent = isSpeaking ? 'KITT is speaking...' : 'Listening...';
+        statusText.classList.toggle('speaking', isSpeaking);
+        
+        // Update voice modulator animation
+        if (isSpeaking) {
+            randomVoiceAnimation();
+        } else {
+            stopVoiceAnimation();
+        }
+    }
+
+    // Function to start streaming conversation
+    async function startConversation() {
+        const micButton = document.getElementById('mic-button');
+        const endButton = document.getElementById('end-conversation');
+        
+        try {
+            const hasPermission = await requestMicrophonePermission();
+            if (!hasPermission) {
+                alert('Microphone permission is required for the conversation.');
+                return;
+            }
+
+            const audioUrl = await getSignedUrl();
+            
+            // Create and configure the audio element
+            const audioElement = new Audio();
+            audioElement.src = audioUrl;
+            audioElement.crossOrigin = 'anonymous';
+            
+            // Connect the audio element to our audio processing
+            await connectToAudio(audioElement);
+            
+            // Start playing the audio
+            await audioElement.play();
+            
+            // Update UI state
+            updateStatus(true);
+            micButton.disabled = true;
+            endButton.disabled = false;
+            isStreaming = true;
+
+            // Switch to AI mode and pursuit display
+            switchMode('ai');
+            activateMode('pursuit');
+            
+        } catch (error) {
+            console.error('Error starting conversation:', error);
+            alert('Failed to start conversation. Please try again.');
+        }
+    }
+
+    // Function to end streaming conversation
+    async function endConversation() {
+        if (isStreaming) {
+            stopAudioPlayback();
+            isStreaming = false;
+            
+            // Reset UI state
+            updateStatus(false);
+            document.getElementById('mic-button').disabled = false;
+            document.getElementById('end-conversation').disabled = true;
+            activateMode('auto-cruise');
+            stopVoiceAnimation();
+        }
+    }
+
+    // Update the processSpeechInput function to handle streaming
     async function processSpeechInput(text) {
         try {
             log('Processing speech input: ' + text, 'info');
             addToConversationHistory(text, 'user');
             
-            let response;
-            if (currentMode === 'tts') {
-                // In TTS mode, just echo back what was said without prefix
-                response = text;
-                await textToSpeech(response);
+            if (isStreaming && conversation) {
+                // In streaming mode, send text directly to conversation
+                await conversation.sendMessage(text);
             } else {
-                // In AI mode, generate a contextual response
-                response = await getAIResponse(text);
+                // Fall back to non-streaming mode
+                let response;
+                if (currentMode === 'tts') {
+                    response = text;
+                    await textToSpeech(response);
+                } else {
+                    response = await getAIResponse(text);
+                }
+                addToConversationHistory(response, 'kitt');
+                log('KITT: ' + response, 'kitt');
             }
-            
-            // Add response to the conversation history
-            addToConversationHistory(response, 'kitt');
-            log('KITT: ' + response, 'kitt');
         } catch (error) {
             log('Error processing speech: ' + error.message, 'error');
             addToConversationHistory('Error: ' + error.message, 'system');
@@ -562,50 +729,6 @@ document.addEventListener('DOMContentLoaded', function() {
         navigator.clipboard.writeText(text)
             .then(() => log('Conversation history copied to clipboard', 'system'))
             .catch(err => log('Error copying conversation history: ' + err.message, 'error'));
-    }
-
-    // Function to generate KITT's response based on user input
-    function generateKittResponse(input) {
-        // Convert input to lowercase for easier matching
-        input = input.toLowerCase();
-        
-        // Define some basic response patterns
-        const responses = {
-            greeting: [
-                "Hello, Michael. How can I assist you today?",
-                "Greetings, Michael. What can I do for you?",
-                "Hello, Michael. I'm here to help."
-            ],
-            status: [
-                "All systems are functioning normally.",
-                "My diagnostic systems indicate everything is operating within normal parameters.",
-                "I'm running at optimal efficiency."
-            ],
-            mode: [
-                "I am currently in auto-cruise mode.",
-                "We are in normal-cruise mode.",
-                "Pursuit mode is active."
-            ],
-            default: [
-                "I'm processing your request, Michael.",
-                "I understand. Let me help you with that.",
-                "I'll take care of that right away."
-            ]
-        };
-        
-        // Check for keywords and return appropriate response
-        if (input.match(/hello|hi|hey|greetings/)) {
-            return responses.greeting[Math.floor(Math.random() * responses.greeting.length)];
-        }
-        else if (input.match(/status|how are you|diagnostic/)) {
-            return responses.status[Math.floor(Math.random() * responses.status.length)];
-        }
-        else if (input.match(/mode|what mode|current mode/)) {
-            return responses.mode[Math.floor(Math.random() * responses.mode.length)];
-        }
-        else {
-            return responses.default[Math.floor(Math.random() * responses.default.length)];
-        }
     }
 
     // ElevenLabs Configuration UI
@@ -692,6 +815,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 typeof config.additionalParams === 'object' 
                     ? JSON.stringify(config.additionalParams, null, 2)
                     : config.additionalParams || '';
+
+            // Initialize button visibility based on current mode
+            const micButton = document.getElementById('mic-button');
+            const startButton = document.getElementById('start-conversation');
+            const endButton = document.getElementById('end-conversation');
+            
+            if (currentMode === 'tts') {
+                micButton.style.display = 'block';
+                startButton.style.display = 'none';
+                endButton.style.display = 'none';
+            } else {
+                micButton.style.display = 'none';
+                startButton.style.display = 'block';
+                endButton.style.display = 'block';
+            }
         } catch (error) {
             console.error('Error loading configuration:', error);
         }
@@ -751,4 +889,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add mode switch event listeners
     document.getElementById('btn-tts-mode').addEventListener('click', () => switchMode('tts'));
     document.getElementById('btn-ai-mode').addEventListener('click', () => switchMode('ai'));
+
+    // Add event listeners for conversation controls
+    document.getElementById('start-conversation').addEventListener('click', startConversation);
+    document.getElementById('end-conversation').addEventListener('click', endConversation);
 });

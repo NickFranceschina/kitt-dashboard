@@ -218,8 +218,10 @@ body {
 .voice-controls {
     display: flex;
     justify-content: center;
+    align-items: center;
     margin-bottom: 20px;
     width: 100%;
+    gap: 15px;
 }
 
 .mic-button {
@@ -239,11 +241,14 @@ body {
     position: relative;
 }
 
-.mic-button:after {
+.mic-button:before {
     content: "MIC";
     position: absolute;
     font-size: 16px;
     font-weight: bold;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .mic-button:hover {
@@ -256,7 +261,7 @@ body {
     background-color: #ff0000;
 }
 
-.mic-button.listening:after {
+.mic-button.listening:before {
     content: "TALK";
 }
 
@@ -266,13 +271,51 @@ body {
     100% { transform: scale(1); box-shadow: 0 0 10px rgba(255, 0, 0, 0.5); }
 }
 
+.conversation-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.conversation-button {
+    background-color: #333;
+    color: #d4a017;
+    border: 1px solid #d4a017;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.conversation-button:hover:not(:disabled) {
+    background-color: #d4a017;
+    color: black;
+    box-shadow: 0 0 10px rgba(212, 160, 23, 0.5);
+}
+
+.conversation-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .status-text {
-    margin-left: 15px;
+    margin: 0 15px;
     padding: 10px;
     border-radius: 5px;
     background-color: #333;
     min-width: 200px;
     text-align: center;
+    transition: all 0.3s ease;
+}
+
+.status-text.connected {
+    background-color: #1a472a;
+    color: #00ff00;
+}
+
+.status-text.speaking {
+    background-color: #8b0000;
+    color: #ffc125;
 }
 
 /* API Configuration Styles */
@@ -376,12 +419,6 @@ body {
     color: #d4a017;
     margin: 0 0 10px 0;
     font-size: 16px;
-}
-
-.conversation-controls {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
 }
 
 .conversation-history {
