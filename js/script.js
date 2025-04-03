@@ -11,6 +11,11 @@ function handleOutsideClick(event) {
         if (!apiConfig.classList.contains('pinned')) {
             apiConfig.classList.remove('visible');
             configToggleButton.classList.remove('active');
+            
+            // Restore scrolling on mobile
+            if (window.innerWidth <= 768) {
+                document.body.style.overflow = '';
+            }
         }
     }
 }
@@ -208,6 +213,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Ensure panel starts hidden
     apiConfig.classList.remove('visible');
+    
+    // Handle resizing for responsive layout
+    window.addEventListener('resize', function() {
+        // Update the right position based on screen size
+        if (apiConfig.classList.contains('visible') || apiConfig.classList.contains('pinned')) {
+            if (window.innerWidth <= 480) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = '';
+            }
+        }
+    });
     
     // Add click event listener for clicks outside the panel
     document.addEventListener('click', handleOutsideClick);
@@ -1150,6 +1167,11 @@ function toggleConfig() {
         if (!apiConfig.classList.contains('pinned')) {
             apiConfig.classList.toggle('visible');
             toggleButton.classList.toggle('active');
+            
+            // Update for mobile devices
+            if (window.innerWidth <= 768) {
+                document.body.style.overflow = apiConfig.classList.contains('visible') ? 'hidden' : '';
+            }
         }
     }
 }
